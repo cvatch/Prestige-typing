@@ -1,0 +1,2519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Typing Tutor Adventure</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f0f0f0;
+    }
+    header {
+      background: #007bff;
+      color: white;
+      padding: 1.2rem 1rem 1.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    .section {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+    }
+    .keyboard button {
+      width: 32px;
+      height: 32px;
+      margin: 2px;
+      font-weight: bold;
+    }
+    .button {
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .primary {
+      background-color: #007bff;
+      color: white;
+    }
+    .disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    input, select, textarea {
+      padding: 0.5rem;
+      width: 100%;
+      margin-top: 0.25rem;
+      margin-bottom: 1rem;
+    }
+    .store-grid-letters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .store-item {
+      border: 2px solid #ccc;
+      padding: 0.5rem;
+      border-radius: 6px;
+      text-align: center;
+      width: 80px;
+      height: 70px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+    .store-item-large {
+      min-width: 320px;
+      min-height: 120px;
+      width: 100%;
+      font-size: 1.1em;
+      padding: 1.2rem 1rem;
+      margin-bottom: 1.2rem;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      word-break: break-word;
+    }
+    .store-item.disabled {
+      background-color: #f2f2f2;
+      color: #999;
+    }
+    .letter-correct {
+      color: white;
+      background: #28a745;
+      border-radius: 4px;
+      padding: 2px 4px;
+    }
+    .letter-current {
+      color: #006df3;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+    .word-error {
+      color: white !important;
+      background: #dc3545 !important;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .vk-current {
+      background: #007bff !important;
+      color: #fff !important;
+      border-radius: 4px;
+    }
+    .score-popup {
+      position: absolute;
+      font-size: 1.8em;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 1000;
+      animation: scorePopup 2s ease-out forwards;
+    }
+    .score-popup.correct {
+      color: #28a745;
+    }
+    .score-popup.incorrect {
+      color: #dc3545;
+    }
+    @keyframes scorePopup {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+    }
+    .level-circle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
+      border: 3px solid #b8860b;
+      border-radius: 50%;
+      width: 55px;
+      height: 55px;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      cursor: help;
+      margin-top: -10px;
+    }
+
+    .level-text {
+      font-size: 15px;
+      font-weight: bold;
+      color: #8b4513;
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    }
+
+    .level-progress {
+      position: absolute;
+      bottom: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 75px;
+      height: 7px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #28a745, #20c997);
+      transition: width 0.3s ease;
+    }
+
+    .level-score-text {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Typing Tutor Adventure</h1>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span id="coinCount">💰 100</span> |
+      <span id="streakCount">🔥 0</span>
+      <button class="button" id="resetProgressBtn" style="margin-left: 1rem; background: #dc3545; color: white;">Reset Progress</button>
+      <label style="margin-left: 1rem; font-size: 0.95em; display: flex; align-items: center; gap: 0.25rem;">
+        <input type="checkbox" id="devModeToggleHeader"> Dev Mode
+      </label>
+      <div id="levelDisplay" style="margin-left: auto;"></div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="section">
+      <h2>Type This Word:</h2>
+      <div id="currentWord" style="font-size: 24px; font-weight: bold; margin-bottom: 1rem;">Loading...</div>
+      <input type="text" id="wordInput" placeholder="Type here..." autofocus />
+
+      <div>
+        <span id="accuracy">Accuracy: 0%</span> |
+        <span id="wordsTyped">Words Typed: 0</span> |
+        <span id="wpm">WPM: 0</span>
+      </div>
+    </div>
+
+    <div class="section keyboard" id="virtualKeyboard"></div>
+
+    <div class="section">
+      <button class="button primary" id="storeMainBtn" onclick="toggleSection('store')">Store</button>
+      <button class="button primary" id="statsMainBtn" onclick="toggleSection('stats')">Stats</button>
+      <button class="button primary" id="wordListsMainBtn" onclick="toggleSection('wordManager')" style="display:none;" disabled>Word Lists</button>
+      <button class="button primary" id="prestigeStoreMainBtn" onclick="toggleSection('prestigeStore')" style="display:none;">Prestige Store</button>
+      <button class="button primary" id="devStoreMainBtn" onclick="toggleSection('devStore')" style="display:none;background:#333;color:#fff;">Dev Store</button>
+    </div>
+  </div>
+
+    <div class="section" id="storeSection" style="display: none;">
+      <h2>Store</h2>
+      <div style="margin-bottom: 1rem;">
+        <button class="button" id="storeTabLetters">Letter Unlocks</button>
+        <button class="button" id="storeTabKeyboard">Keyboard Upgrades</button>
+        <button class="button" id="storeTabWordLength">Word Upgrades</button>
+      </div>
+      <div id="storeItems"></div>
+    </div>
+
+    <div class="section" id="prestigeStoreSection" style="display: none;">
+      <h2>Prestige Store <span style='color:#ff6b35;'>⭐</span></h2>
+      <div id="prestigeStoreItems"></div>
+      <div style="margin-top:1.5em;text-align:center;">
+        <a href="#" id="openPermLetterUnlocksLink" style="font-weight:bold;color:#007bff;text-decoration:underline;cursor:pointer;">Permanent Letter Unlocks</a>
+      </div>
+    </div>
+
+    <div class="section" id="permLetterUnlocksSection" style="display: none;">
+      <h2>Permanent Letter Unlocks <span style='color:#ff6b35;'>⭐</span></h2>
+      <div id="permLetterUnlocksItems"></div>
+      <div style="margin-top:1.5em;text-align:center;">
+        <button class="button" id="backToPrestigeStoreBtn">Back to Prestige Store</button>
+      </div>
+    </div>
+
+    <div class="section" id="devStoreSection" style="display: none;">
+      <h2>Dev Store <span style='color:#333;'>🛠️</span></h2>
+      <div id="devStoreItems"></div>
+    </div>
+
+    <div class="section" id="wordManagerSection" style="display: none;">
+      <h2>Word List Manager</h2>
+      <div id="wordListDropdownArea" style="display:none;">
+        <label for="wordListSelect">Choose Word List:</label>
+        <select id="wordListSelect"></select>
+        <div id="currentWordLists"></div>
+      </div>
+      <div id="addCustomListArea" style="display:none;">
+        <h3>Add New Word List</h3>
+        <input type="text" id="newListName" placeholder="List Name" />
+        <textarea id="newListWords" placeholder="Comma-separated words"></textarea>
+        <button class="button primary" onclick="addNewWordList()">Add List</button>
+      </div>
+    </div>
+
+    <div class="section" id="statsSection" style="display: none;">
+      <h2>Letter Statistics</h2>
+      <div id="letterStats"></div>
+    </div>
+  </div>
+<div id="exampleBreakdown" style="max-width:900px;margin:2rem auto 0 auto;"></div>
+
+  <script>
+    let coins = 0;
+    let score = 0;
+    let streak = 0;
+    let correct = 0;
+    let total = 0;
+    let currentWord = '';
+    let lastWord = '';
+    let lastLoggedWorstLetters = [];
+    let unlockedLetters = new Set(['a','s','d','f','j','k','l']);
+    let errorTimeout = null;
+    
+    const allLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    const vowels = ['a', 'e', 'i', 'o', 'u'];
+    const consonants = allLetters.filter(l => !vowels.includes(l));
+    
+    // Letter statistics tracking
+    let letterStats = {};
+    allLetters.forEach(letter => {
+      letterStats[letter] = { correct: 0, incorrect: 0 };
+    });
+    // Store letter prices in an object
+    let letterPrices = {};
+    vowels.forEach(v => letterPrices[v] = 1000);
+    consonants.forEach(c => letterPrices[c] = 500);
+
+    // Keyboard upgrade state
+    let keyboardUpgradeLevel = 0;
+    let keyboardUpgradePrice = 3000;
+    function getKeyboardMultiplier() {
+      return 1 + 0.1 * keyboardUpgradeLevel;
+    }
+
+    // Word length upgrade state
+    let maxWordLength = 3;
+    let maxWordLengthUpgradePrice = 2000;
+    let maxWordLengthUpgradeLevel = 0;
+    let consonantValue = 5;
+    let consonantUpgradeLevel = 0;
+    let consonantUpgradePrice = 500;
+    let vowelValue = 8;
+    let vowelUpgradeLevel = 0;
+    let vowelUpgradePrice = 1000;
+    let lengthBonus = 1;
+    let lengthBonusUpgradeLevel = 0;
+    let lengthBonusUpgradePrice = 2000;
+    let accuracyMultiplier = 0.02;
+    let accuracyUpgradeLevel = 0;
+    let accuracyUpgradePrice = 2000;
+    let wpmMultiplier = 0.02;
+    let wpmUpgradeLevel = 0;
+    let wpmUpgradePrice = 2000;
+    let streakMultiplier = 0.02;
+    let streakUpgradeLevel = 0;
+    let streakUpgradePrice = 2000;
+
+    // Capital letter word upgrade state
+    let capitalWordUpgradeLevel = 0;
+    let capitalWordUpgradePrice = 4000;
+    function getCapitalWordChance() {
+      return Math.min(1, capitalWordUpgradeLevel * 0.1);
+    }
+
+    function getCapitalWordBonus() {
+      if (capitalWordUpgradeLevel <= 10) {
+        return 2; // 2x for first 10 levels (100% chance)
+      } else {
+        return 2 + (capitalWordUpgradeLevel - 10) * 0.1; // +0.1x per level after 100%
+      }
+    }
+
+    // Custom Word List unlock state
+    let customWordListUnlocked = false;
+    // Add new state for two-step word list upgrades
+    let chooseWordListUnlocked = false;
+    let addCustomWordListUnlocked = false;
+    let chooseWordListUpgradePrice = 5000;
+    let addCustomWordListUpgradePrice = 8000;
+    // Dev mode toggle state
+    let devModeEnabled = false;
+
+    // Add state for mistake penalty reduction
+    let mistakePenaltyReductionLevel = 0;
+    let mistakePenaltyReductionPrice = 2000;
+
+    // Add state for semicolon word upgrade
+    let semicolonWordUpgradeLevel = 0;
+    let semicolonWordUpgradePrice = 1000;
+    function getSemicolonWordChance() {
+      return Math.min(1, semicolonWordUpgradeLevel * 0.1);
+    }
+
+    function getSemicolonWordBonus() {
+      if (semicolonWordUpgradeLevel <= 10) {
+        return 1.5; // 1.5x for first 10 levels (100% chance)
+      } else {
+        return 1.5 + (semicolonWordUpgradeLevel - 10) * 0.1; // +0.1x per level after 100%
+      }
+    }
+
+    // Add state for targeted practice upgrade
+    let targetedPracticeUnlocked = false;
+    let targetedPracticePrice = 3000;
+    let currentWordIsTargeted = false; // Track if current word was generated using targeted practice
+    let targetedWordBonus = 0.25; // 25% default
+    let targetedWordBonusUpgradePrice = 2000;
+
+    // Prestiging system state
+    let prestigeLevel = 0; // Current prestige level (0 = no prestige)
+    let prestigeStars = 0; // Stars earned from prestiging
+    let nextPrestigeLevel = 10; // Level required for next prestige (10, 20, 30, etc.)
+    let prestigeCoinMultiplier = 1; // Permanent coin multiplier from prestige upgrades
+    let prestigeUnlocked = false; // Whether prestige button is visible
+    let prestigeUpgradePrice = 5000; // Price for prestige coin multiplier upgrade
+    let prestigeUpgradeLevel = 0; // Current level of prestige coin multiplier upgrade
+
+    let prestigeStreakPenalty = 5; // Starts at 5, reduces to 1
+    let prestigeStreakPenaltyLevel = 0;
+    let prestigeStreakPenaltyMax = 5;
+    let prestigeStreakPenaltyUpgradeCost = 200; // stars, increases per upgrade
+
+    let prestigeMistakeForgiveness = false; // true if bought
+    let prestigeMistakeForgivenessCost = 500; // stars
+
+    let prestigeMaxWordLengthLevel = 0; // how many times bought
+    let prestigeMaxWordLengthBaseCost = 300; // stars
+    // Remove prestigeMaxWordLengthBoost and prestigeMaxWordLengthBoostCost
+
+    let prestigePermanentLetters = [];
+    let prestigePermanentLetterCost = 150; // stars per letter
+
+    let prestigeVowelPrice = 300;
+    let prestigeConsonantPrice = 150;
+
+    // Default word lists for reset/first load
+    const defaultWordLists = [
+      {
+        id: 1,
+        name: 'Basic Words',
+        words: [
+          "the", "of", "and", "to", "in", "i", "that", "was", "his", "he", "it", "with", "is", "for", "as", "had", "you", "not", "be", "her", "on", "at", "by", "which", "have", "or", "from", "this", "him", "but", "all", "she", "they", "were", "my", "are", "me", "one", "their", "so", "an", "said", "them", "we", "who", "would", "been", "will", "no", "when", "there", "if", "more", "out", "up", "into", "do", "any", "your", "what", "has", "man", "could", "other", "than", "our", "some", "very", "time", "upon", "about", "may", "its", "only", "now", "like", "little", "then", "can", "should", "made", "did", "us", "such", "a", "great", "before", "must", "two", "these", "see", "know", "over", "much", "down", "after", "first", "Mr", "good", "men", "own", "never", "most", "old", "shall", "day", "where", "those", "came", "come", "himself", "way", "work", "life", "without", "go", "make", "well", "through", "being", "long", "say", "might", "how", "am", "too", "even", "again", "many", "back", "here", "think", "every", "people", "went", "same", "last", "thought", "away", "under", "take", "found", "hand", "eyes", "still", "place", "while", "just", "also", "young", "yet", "though", "against", "things", "get", "ever", "give", "god", "years", "off", "face", "nothing", "right", "once", "another", "left", "part", "saw", "house", "world", "head", "three", "took", "new", "love", "always", "Mrs", "put", "night", "each", "king", "between", "tell", "mind", "heart", "few", "because", "thing", "whom", "far", "seemed", "looked", "called", "whole", "set", "both", "got", "find", "done", "heard", "look", "name", "days", "told", "let", "lord", "country", "asked", "going", "seen", "better", "having", "home", "knew", "side", "something", "moment", "father", "among", "course", "hands", "woman", "enough", "words", "mother", "soon", "full", "end", "gave", "room", "almost", "small", "thou", "cannot", "water", "want", "however", "light", "quite", "brought", "nor", "word", "whose", "given", "door", "best", "turned", "taken", "does", "use", "morning", "myself", "Gutenberg", "felt", "until", "since", "power", "themselves", "used", "rather", "began", "present", "voice", "others", "white", "works", "less", "money", "next", "poor", "death", "stood", "form", "within", "together", "till", "thy", "large", "matter", "kind", "often", "certain", "herself", "year", "friend", "half", "order", "round", "TRUE", "anything", "keep", "sent", "wife", "means", "believe", "passed", "feet", "near", "public", "state", "son", "hundred", "children", "thus", "hope", "alone", "above", "case", "dear", "thee", "says", "person", "high", "read", "city", "already", "received", "fact", "gone", "girl", "known", "hear", "times", "least", "perhaps", "sure", "indeed", "english", "open", "body", "itself", "along", "land", "return", "leave", "air", "nature", "answered", "either", "law", "help", "lay", "point", "child", "letter", "four", "wish", "fire", "cried", "women", "speak", "number", "therefore", "hour", "friends", "held", "free", "war", "during", "several", "business", "whether", "manner", "second", "reason", "replied", "united", "call", "general", "why", "behind", "became", "john", "become", "dead", "earth", "boy", "lost", "forth", "thousand", "looking", "I'll", "family", "soul", "feel", "coming", "England", "spirit", "question", "care", "truth", "ground", "really", "rest", "mean", "different", "making", "possible", "fell", "towards", "human", "kept", "short", "town", "following", "need", "cause", "met", "evening", "returned", "five", "strong", "able", "french", "live", "lady", "subject", "answer", "sea", "fear", "understand", "hard", "terms", "doubt", "around", "ask", "arms", "turn", "sense", "seems", "black", "bring", "followed", "beautiful", "close", "dark", "hold", "character", "sort", "sight", "ten", "show", "party", "fine", "ye", "ready", "story", "common", "book", "electronic", "talk", "account", "mark", "interest", "written", "can't", "bed", "necessary", "age", "else", "force", "idea", "longer", "art", "spoke", "across", "brother", "early", "ought", "sometimes", "line", "saying", "table", "appeared", "river", "continued", "eye", "sun", "information", "later", "everything", "reached", "suddenly", "past", "hours", "strange", "deep", "change", "miles", "feeling", "act", "meet", "paid", "further", "purpose", "happy", "added", "seem", "taking", "blood", "rose", "south", "beyond", "cold", "neither", "forward", "view", "I've", "position", "sound", "none", "entered", "clear", "road", "late", "stand", "suppose", "la", "daughter", "real", "nearly", "mine", "laws", "knowledge", "comes", "toward", "bad", "cut", "copy", "husband", "six", "France", "living", "peace", "didn't", "low", "north", "remember", "effect", "natural", "pretty", "fall", "fair", "service", "below", "except", "American", "hair", "London", "laid", "pass", "led", "copyright", "doing", "army", "run", "horse", "future", "opened", "pleasure", "history", "west", "pay", "red", "hath", "note", "although", "wanted", "gold", "makes", "desire", "play", "master", "office", "tried", "front", "big", "lived", "certainly", "wind", "receive", "attention", "government", "unto", "church", "strength", "length", "company", "placed", "paper", "letters", "probably", "glad", "important", "especially", "greater", "yourself", "fellow", "bear", "opinion", "window", "ran", "faith", "ago", "agreement", "charge", "beauty", "lips", "remained", "arm", "latter", "duty", "send", "distance", "silence", "foot", "wild", "object", "die", "save", "gentleman", "trees", "green", "trouble", "smile", "books", "wrong", "various", "sleep", "persons", "blockquote", "happened", "particular", "drew", "minutes", "hardly", "walked", "chief", "chance", "according", "beginning", "action", "deal", "loved", "visit", "thinking", "follow", "standing", "knows", "try", "presence", "heavy", "sweet", "plain", "donations", "immediately", "wrote", "mouth", "rich", "thoughts", "months", "won't", "afraid", "Paris", "single", "joy", "enemy", "broken", "unless", "states", "ship", "condition", "carry", "exclaimed", "including", "filled", "seeing", "influence", "write", "boys", "appear", "outside", "secret", "parts", "please", "appearance", "evil", "march", "george", "whatever", "slowly", "tears", "horses", "places", "caught", "stay", "instead", "struck", "blue", "York", "impossible", "period", "sister", "battle", "school", "Mary", "raised", "occasion", "married", "man's", "former", "food", "youth", "learned", "merely", "reach", "system", "twenty", "dinner", "quiet", "easily", "moved", "afterwards", "giving", "walk", "stopped", "laughed", "language", "expression", "week", "hall", "danger", "property", "wonder", "usual", "figure", "born", "court", "generally", "grew", "showed", "getting", "ancient", "respect", "third", "worth", "simple", "tree", "leaving", "remain", "society", "fight", "wall", "result", "heaven", "William", "started", "command", "tone", "regard", "expected", "mere", "month", "beside", "silent", "perfect", "experience", "street", "writing", "goes", "circumstances", "entirely", "fresh", "duke", "covered", "bound", "east", "wood", "stone", "quickly", "notice", "bright", "Christ", "boat", "noble", "meant", "somewhat", "sudden", "value", "direction", "chair", "due", "support", "tom", "date", "waiting", "Christian", "village", "lives", "reading", "agree", "lines", "considered", "field", "observed", "scarcely", "wished", "wait", "greatest", "permission", "success", "piece", "british", "Charles", "formed", "speaking", "trying", "conversation", "proper", "hill", "music", "opportunity", "that's", "German", "afternoon", "cry", "cost", "allowed", "girls", "considerable", "broke", "honour", "seven", "private", "sit", "news", "top", "scene", "discovered", "marriage", "step", "garden", "race", "begin", "per", "individual", "sitting", "learn", "political", "difficult", "bit", "speech", "Henry", "lie", "cast", "eat", "authority", "floor", "ill", "ways", "officers", "offered", "original", "happiness", "flowers", "produced", "summer", "provide", "study", "religion", "picture", "walls", "personal", "America", "watch", "pleased", "leaves", "declared", "hot", "understood", "effort", "prepared", "escape", "attempt", "supposed", "killed", "fast", "author", "Indian", "brown", "determined", "pain", "spring", "takes", "drawn", "soldiers", "houses", "beneath", "talking", "turning", "century", "steps", "intended", "soft", "straight", "matters", "likely", "corner", "trademark", "justice", "simply", "produce", "trust", "appears", "Rome", "laugh", "forget", "Europe", "passage", "eight", "closed", "ourselves", "gives", "dress", "passing", "terrible", "required", "medium", "efforts", "sake", "breath", "wise", "ladies", "possession", "pleasant", "perfectly", "o'", "memory", "usually", "grave", "fixed", "modern", "spot", "troops", "rise", "break", "fifty", "island", "meeting", "camp", "nation", "existence", "reply", "I'd", "copies", "sky", "touch", "equal", "fortune", "shore", "domain", "named", "situation", "looks", "promise", "orders", "degree", "middle", "winter", "plan", "spent", "allow", "pale", "conduct", "running", "religious", "surprise", "minute", "roman", "cases", "shot", "lead", "move", "names", "Word", "stop", "higher", "father's", "threw", "worse", "built", "spoken", "glass", "board", "vain", "affairs", "instance", "safe", "loss", "doctor"
+        ]
+      }
+    ];
+    let wordLists = JSON.parse(JSON.stringify(defaultWordLists));
+    let selectedListId = 1;
+
+    const purchases = { letters: new Set(['a','s','d','f','j','k','l']) };
+
+    const wordListSelect = document.getElementById('wordListSelect');
+    const currentWordDiv = document.getElementById('currentWord');
+    const wordInput = document.getElementById('wordInput');
+    const accuracySpan = document.getElementById('accuracy');
+    const wordsTypedSpan = document.getElementById('wordsTyped');
+    const virtualKeyboard = document.getElementById('virtualKeyboard');
+    const storeItemsDiv = document.getElementById('storeItems');
+
+    // Add leveling system state
+    let currentLevel = 1;
+    let levelThresholds = [0, 1000]; // Level 1: 0-999, Level 2: 1000+
+
+    // Function to calculate level and next threshold with ramping multiplier
+    function calculateLevel(score) {
+      let level = 1;
+      let nextThreshold = 1000;
+      
+      // Calculate level based on score with ramping multiplier
+      if (score >= 1000) {
+        level = 2;
+        nextThreshold = 2000; // Level 2: 1000-1999
+        
+        // Calculate higher levels with ramping multiplier
+        let currentThreshold = 2000;
+        let multiplier = 2.0;
+        
+        for (let i = 3; i <= 100; i++) {
+          let threshold = Math.round(currentThreshold * multiplier);
+          if (score >= threshold) {
+            level = i;
+            currentThreshold = threshold;
+            multiplier += 0.1; // Increase multiplier by 0.1 each level
+            nextThreshold = Math.round(currentThreshold * multiplier);
+          } else {
+            nextThreshold = threshold;
+            break;
+          }
+        }
+      }
+      
+      return { level, nextThreshold };
+    }
+
+    // Function to check if prestige is available and update prestige state
+    function checkPrestigeAvailability() {
+      const levelInfo = calculateLevel(score);
+      const currentLevel = levelInfo.level;
+      
+      // Prestige becomes available at level 10, then every 10 levels after
+      if (currentLevel >= nextPrestigeLevel && !prestigeUnlocked) {
+        prestigeUnlocked = true;
+        // Update button visibility
+        updatePrestigeButtonVisibility();
+      }
+    }
+
+    // Function to update prestige button visibility
+    function updatePrestigeButtonVisibility() {
+      const prestigeBtn = document.getElementById('prestigeBtn');
+      const wordListsBtn = document.getElementById('wordListsMainBtn');
+      // Only show if prestigeUnlocked is true and not immediately after prestiging
+      if (prestigeUnlocked && !prestigeBtn) {
+        const newPrestigeBtn = document.createElement('button');
+        newPrestigeBtn.className = 'button primary';
+        newPrestigeBtn.id = 'prestigeBtn';
+        newPrestigeBtn.textContent = 'Prestige';
+        newPrestigeBtn.onclick = performPrestige;
+        newPrestigeBtn.style.background = '#ff6b35';
+        newPrestigeBtn.style.color = 'white';
+        if (wordListsBtn) {
+          wordListsBtn.parentNode.insertBefore(newPrestigeBtn, wordListsBtn);
+        } else {
+          const storeBtn = document.getElementById('storeMainBtn');
+          if (storeBtn) {
+            storeBtn.parentNode.appendChild(newPrestigeBtn);
+          }
+        }
+      }
+      // Hide the button if prestigeUnlocked is false
+      if (!prestigeUnlocked && prestigeBtn) {
+        prestigeBtn.remove();
+      }
+      // Update word lists button visibility
+      if (wordListsBtn) {
+        if (chooseWordListUnlocked) {
+          wordListsBtn.style.display = 'inline-block';
+          wordListsBtn.disabled = false;
+        } else {
+          wordListsBtn.style.display = 'none';
+          wordListsBtn.disabled = true;
+        }
+      }
+    }
+
+    // Function to update level display
+    function updateLevelDisplay() {
+      const levelInfo = calculateLevel(score);
+      currentLevel = levelInfo.level;
+      
+      // Calculate progress percentage
+      let progressPercent = 0;
+      let currentThreshold = 0;
+      if (currentLevel === 1) {
+        progressPercent = Math.min(100, (score / 1000) * 100);
+        currentThreshold = 0;
+      } else {
+        // Find the current level's threshold
+        currentThreshold = 1000;
+        let multiplier = 2.0;
+        for (let i = 2; i < currentLevel; i++) {
+          currentThreshold = Math.round(currentThreshold * multiplier);
+          multiplier += 0.1;
+        }
+        const levelStart = currentThreshold;
+        const levelEnd = levelInfo.nextThreshold;
+        progressPercent = Math.min(100, ((score - levelStart) / (levelEnd - levelStart)) * 100);
+      }
+      
+      const levelDisplay = document.getElementById('levelDisplay');
+      if (levelDisplay) {
+        let prestigeText = '';
+        if (prestigeLevel > 0) {
+          prestigeText = `<div style="font-size: 0.8em; color: #ff6b35; margin-top: 0.2rem;">⭐ ${prestigeLevel}</div>`;
+        }
+        
+        levelDisplay.innerHTML = `
+          <div class="level-circle">
+            <span class="level-text">Lv.${currentLevel}</span>
+            <div class="level-progress">
+              <div class="progress-bar" style="width: ${progressPercent}%"></div>
+            </div>
+            <div class="level-score-text">${score} / ${levelInfo.nextThreshold}</div>
+            ${prestigeText}
+          </div>
+        `;
+      }
+      
+      // Check if prestige should be unlocked
+      checkPrestigeAvailability();
+    }
+
+    function updateStats() {
+      document.getElementById('coinCount').textContent = `💰 ${coins}`;
+      document.getElementById('streakCount').textContent = `🔥 ${streak}`;
+      
+      // Add prestige stars display if prestiged
+      const existingStarsDisplay = document.getElementById('prestigeStarsDisplay');
+      if (prestigeLevel > 0) {
+        if (!existingStarsDisplay) {
+          const starsDisplay = document.createElement('span');
+          starsDisplay.id = 'prestigeStarsDisplay';
+          starsDisplay.textContent = ` | ⭐ ${prestigeStars}`;
+          starsDisplay.style.color = '#ff6b35';
+          starsDisplay.style.fontWeight = 'bold';
+          document.getElementById('streakCount').after(starsDisplay);
+        } else {
+          existingStarsDisplay.textContent = ` | ⭐ ${prestigeStars}`;
+        }
+      } else if (existingStarsDisplay) {
+        existingStarsDisplay.remove();
+      }
+      
+      accuracySpan.textContent = `Accuracy: ${total > 0 ? Math.round((correct/total)*100) : 0}%`;
+      wordsTypedSpan.textContent = `Words Typed: ${correct}`;
+      
+      // Add targeted practice indicator
+      const targetedIndicator = document.getElementById('targetedPracticeIndicator');
+      if (targetedPracticeUnlocked) {
+        if (!targetedIndicator) {
+          const indicator = document.createElement('span');
+          indicator.id = 'targetedPracticeIndicator';
+          indicator.textContent = ' 🎯';
+          indicator.title = 'Targeted Practice Active - Words prioritize your worst-performing letters';
+          indicator.style.color = '#28a745';
+          indicator.style.fontWeight = 'bold';
+          document.getElementById('streakCount').after(indicator);
+        }
+      } else if (targetedIndicator) {
+        targetedIndicator.remove();
+      }
+      
+      updateLevelDisplay();
+      updatePrestigeButtonVisibility();
+    }
+
+    // Helper to get the max word length in the current word list
+    function getCurrentListMaxWordLength() {
+      const list = wordLists.find(w => w.id == selectedListId);
+      if (!list || !list.words.length) return 3;
+      return Math.max(...list.words.map(word => word.length));
+    }
+
+    // Update maxWordLength/maxWordLengthUpgradeLevel if needed
+    function enforceMaxWordLengthLimit() {
+      const maxAllowed = getCurrentListMaxWordLength();
+      if (maxWordLength > maxAllowed) {
+        maxWordLength = maxAllowed;
+      }
+      // Set upgrade level accordingly
+      maxWordLengthUpgradeLevel = maxWordLength - 3;
+      // If the store is open, update it
+      if (document.getElementById('storeSection').style.display === 'block') {
+        buildStore();
+      }
+    }
+
+    function populateWordListSelect() {
+      wordListSelect.innerHTML = '';
+      // Add Home Row (Random) option if word list selection is unlocked
+      if (chooseWordListUnlocked) {
+        const homeRowOption = document.createElement('option');
+        homeRowOption.value = 'homerow';
+        homeRowOption.textContent = 'Home Row (Random)';
+        wordListSelect.appendChild(homeRowOption);
+      }
+      wordLists.forEach(list => {
+        const option = document.createElement('option');
+        option.value = list.id;
+        option.textContent = list.name;
+        wordListSelect.appendChild(option);
+      });
+      // If chooseWordListUnlocked and nothing is selected, select 'homerow' by default
+      if (chooseWordListUnlocked && (!wordListSelect.value || wordListSelect.value === '')) {
+        wordListSelect.value = 'homerow';
+      }
+      enforceMaxWordLengthLimit();
+    }
+
+    function getAvailableWords() {
+      // If Home Row (Random) is selected, generate random home row words
+      if (typeof wordListSelect !== 'undefined' && wordListSelect.value === 'homerow') {
+        const homeRowLetters = ['a','s','d','f','j','k','l'];
+        // Generate a pool of random words (e.g., 100 words)
+        const words = [];
+        for (let i = 0; i < 100; i++) {
+          const len = Math.floor(Math.random() * maxWordLength) + 1;
+          let w = '';
+          for (let j = 0; j < len; j++) {
+            w += homeRowLetters[Math.floor(Math.random() * homeRowLetters.length)];
+          }
+          words.push(w);
+        }
+        return words;
+      } else {
+        const list = wordLists.find(w => w.id == selectedListId);
+        return list.words.filter(word => word.length <= maxWordLength && word.split('').every(l => unlockedLetters.has(l)));
+      }
+    }
+
+    function renderCurrentWord(inputValue = '') {
+      // If errorTimeout is set, show the word in red
+      if (currentWordDiv.classList.contains('word-error')) {
+        currentWordDiv.innerHTML = (currentWordIsTargeted ? '🎯 ' : '') + currentWord;
+        return;
+      }
+      
+      // Add target emoji prefix for targeted words
+      let html = currentWordIsTargeted ? '🎯 ' : '';
+      
+      for (let i = 0; i < currentWord.length; i++) {
+        if (i < inputValue.length) {
+          // Check if the character matches exactly (case-sensitive)
+          let isCorrect = false;
+          if (i === 0 && /^[A-Z]/.test(currentWord)) {
+            // For first character of capital words, require exact match
+            isCorrect = (inputValue[i] === currentWord[i]);
+          } else {
+            // For other characters, case-insensitive match
+            isCorrect = (inputValue[i].toLowerCase() === currentWord[i].toLowerCase());
+          }
+          
+          if (isCorrect) {
+            html += `<span class="letter-correct">${currentWord[i]}</span>`;
+          } else {
+            html += `<span class="word-error">${currentWord[i]}</span>`;
+          }
+        } else if (i === inputValue.length) {
+          html += `<span class="letter-current">${currentWord[i]}</span>`;
+        } else {
+          html += `<span>${currentWord[i]}</span>`;
+        }
+      }
+      currentWordDiv.innerHTML = html;
+    }
+
+    async function pickNewWord() {
+      // Always use targeted practice logic for all lists
+      let words = getAvailableWords();
+      // Exclude lastWord if possible
+      if (words.length > 1 && lastWord) {
+        words = words.filter(w => w !== lastWord);
+      }
+      let word = '';
+      let worstLetters = [];
+      let isTargetedWord = false;
+      if (targetedPracticeUnlocked) {
+        worstLetters = getWorstPerformingLetters(3);
+        // Only log if the list has changed
+        if (worstLetters.join(',') !== lastLoggedWorstLetters.join(',')) {
+          console.log('[Targeted Practice] Worst letters:', worstLetters);
+          lastLoggedWorstLetters = worstLetters.slice();
+        }
+        // Try to pick a word containing a worst-performing letter
+        const targetedWords = words.filter(w => worstLetters.some(l => w.toLowerCase().includes(l)));
+        // console.log('[Targeted Practice] Eligible targeted words:', targetedWords);
+        if (targetedWords.length > 0 && Math.random() < 0.5) {
+          word = targetedWords[Math.floor(Math.random() * targetedWords.length)];
+          isTargetedWord = true;
+          // console.log('[Targeted Practice] Picked targeted word:', word);
+        } else {
+          word = words.length === 0 ? 'No valid words' : words[Math.floor(Math.random() * words.length)];
+          isTargetedWord = targetedWords.includes(word);
+          // if (isTargetedWord) {
+          //   console.log('[Targeted Practice] Picked random word (still targeted):', word);
+          // } else {
+          //   console.log('[Targeted Practice] Picked random word (not targeted):', word);
+          // }
+        }
+      } else {
+        word = words.length === 0 ? 'No valid words' : words[Math.floor(Math.random() * words.length)];
+        isTargetedWord = false;
+      }
+      // Capital letter logic
+      let capital = false;
+      if (capitalWordUpgradeLevel > 0 && word && /^[a-z]/.test(word)) {
+        if (Math.random() < getCapitalWordChance()) {
+          word = word.charAt(0).toUpperCase() + word.slice(1);
+          capital = true;
+        }
+      }
+      // Semicolon logic
+      if (semicolonWordUpgradeLevel > 0 && word && !word.endsWith(';')) {
+        if (Math.random() < getSemicolonWordChance()) {
+          word = word + ';';
+        }
+      }
+      currentWord = word;
+      currentWordIsTargeted = isTargetedWord;
+      lastWord = currentWord;
+      wordInput.value = '';
+      currentWordDiv.classList.remove('word-error');
+      renderCurrentWord('');
+      buildKeyboard();
+      wordInput.focus({ preventScroll: true });
+    }
+
+    // WPM tracking (Gross WPM = (chars/5)/minutes)
+    let wordEntries = []; // { ts, chars }
+    function updateWPM() {
+      const now = Date.now();
+      // Only keep entries from the last 60 seconds
+      wordEntries = wordEntries.filter(e => now - e.ts <= 60000);
+      if (wordEntries.length === 0) {
+        document.getElementById('wpm').textContent = `WPM: 0`;
+        return;
+      }
+      const totalChars = wordEntries.reduce((sum, e) => sum + e.chars, 0);
+      // Calculate the actual window in minutes
+      const windowMs = Math.max(now - wordEntries[0].ts, 1000); // at least 1s to avoid div by 0
+      const windowMin = windowMs / 60000;
+      const wpm = Math.round((totalChars / 5) / windowMin);
+      document.getElementById('wpm').textContent = `WPM: ${wpm}`;
+    }
+    setInterval(updateWPM, 200);
+
+    function calculateWordReward(word) {
+      // Calculate base points for a word (same as in handleInput)
+      let base = 0;
+      for (let c of word) {
+        if (vowels.includes(c.toLowerCase())) base += vowelValue;
+        else if (consonants.includes(c.toLowerCase())) base += consonantValue;
+      }
+      base += word.length * lengthBonus;
+      // Calculate multipliers
+      const acc = total > 0 ? correct / total : 1;
+      const wpm = (() => {
+        const now = Date.now();
+        const recent = wordEntries.filter(e => now - e.ts <= 60000);
+        if (recent.length === 0) return 0;
+        const totalChars = recent.reduce((sum, e) => sum + e.chars, 0);
+        const windowMs = Math.max(now - recent[0].ts, 1000);
+        const windowMin = windowMs / 60000;
+        return (totalChars / 5) / windowMin;
+      })();
+      let multiplier = 1;
+      multiplier += acc * accuracyMultiplier;
+      multiplier += wpm * wpmMultiplier;
+      multiplier += streak * streakMultiplier;
+      multiplier *= getKeyboardMultiplier();
+      // Apply prestige coin multiplier
+      multiplier *= prestigeCoinMultiplier;
+      // Capital word bonus
+      if (capitalWordUpgradeLevel > 0 && /^[A-Z]/.test(word)) {
+        multiplier *= getCapitalWordBonus();
+      }
+      // Semicolon word bonus
+      if (semicolonWordUpgradeLevel > 0 && word.endsWith(';')) {
+        multiplier *= getSemicolonWordBonus();
+      }
+      // Targeted practice bonus (scaling bonus for completing targeted words)
+      if (currentWordIsTargeted) {
+        multiplier *= (1 + targetedWordBonus);
+      }
+      return Math.round(base * multiplier);
+    }
+
+    function handleInput() {
+      let value = wordInput.value;
+      if (wordInput.disabled) {
+        // Prevent handling input while in error state
+        return;
+      }
+      buildKeyboard(); // Update keyboard highlight on every input
+      // Special case: 'No valid words' flat reward
+      if (currentWord.toLowerCase() === 'no valid words' && value.toLowerCase() === 'no valid words') {
+        coins += 200;
+        score += 200;
+        total++;
+        updateStats();
+        if (document.getElementById('storeSection').style.display === 'block') {
+          buildStore();
+        }
+        pickNewWord();
+        return;
+      }
+      // If the word starts with a capital, require exact match (case-sensitive)
+      let isCapitalWord = /^[A-Z]/.test(currentWord);
+      let correctInput = false;
+      
+      if (isCapitalWord) {
+        // For capital words, require exact match
+        correctInput = (value === currentWord);
+      } else {
+        // For lowercase words, case-insensitive match
+        correctInput = (value.toLowerCase() === currentWord.toLowerCase());
+      }
+      
+      if (correctInput) {
+        correct++;
+        streak++;
+        
+        // Track letter statistics for correct word
+        trackLetterStats(currentWord, value, true);
+        
+        // Calculate base points
+        let base = 0;
+        for (let c of currentWord) {
+          if (vowels.includes(c.toLowerCase())) base += vowelValue;
+          else if (consonants.includes(c.toLowerCase())) base += consonantValue;
+        }
+        base += currentWord.length * lengthBonus;
+        // Calculate multipliers
+        const acc = total > 0 ? correct / total : 1;
+        const wpm = (() => {
+          const now = Date.now();
+          const recent = wordEntries.filter(e => now - e.ts <= 60000);
+          if (recent.length === 0) return 0;
+          const totalChars = recent.reduce((sum, e) => sum + e.chars, 0);
+          const windowMs = Math.max(now - recent[0].ts, 1000);
+          const windowMin = windowMs / 60000;
+          return (totalChars / 5) / windowMin;
+        })();
+        let multiplier = 1;
+        multiplier += acc * accuracyMultiplier;
+        multiplier += wpm * wpmMultiplier;
+        multiplier += streak * streakMultiplier;
+        multiplier *= getKeyboardMultiplier();
+        // Apply prestige coin multiplier
+        multiplier *= prestigeCoinMultiplier;
+        // Capital word bonus
+        if (capitalWordUpgradeLevel > 0 && /^[A-Z]/.test(currentWord)) {
+          multiplier *= getCapitalWordBonus();
+        }
+        // Semicolon word bonus
+        if (semicolonWordUpgradeLevel > 0 && currentWord.endsWith(';')) {
+          multiplier *= getSemicolonWordBonus();
+        }
+        
+        // Targeted practice bonus (scaling bonus for completing targeted words)
+        if (currentWordIsTargeted) {
+          multiplier *= (1 + targetedWordBonus);
+        }
+        
+        const earned = Math.round(base * multiplier);
+        coins += earned;
+        score += earned;
+        total++;
+        wordEntries.push({ ts: Date.now(), chars: currentWord.length });
+        updateStats();
+        
+        // Show score popup for correct word
+        showScorePopup(earned, true, currentWordDiv);
+        
+        // Show targeted practice bonus message if applicable
+        if (currentWordIsTargeted) {
+          setTimeout(() => {
+            const bonusPopup = document.createElement('div');
+            bonusPopup.className = 'score-popup correct';
+            bonusPopup.textContent = '+25% Targeted Bonus!';
+            bonusPopup.style.fontSize = '1.2em';
+            
+            const rect = currentWordDiv.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            bonusPopup.style.left = `${rect.left}px`;
+            bonusPopup.style.top = `${rect.top + scrollTop - 120}px`;
+            
+            document.body.appendChild(bonusPopup);
+            
+            setTimeout(() => {
+              if (bonusPopup.parentNode) {
+                bonusPopup.parentNode.removeChild(bonusPopup);
+              }
+            }, 2000);
+          }, 500);
+        }
+        
+        // If the store is open, update the store UI to reflect new coin balance
+        if (document.getElementById('storeSection').style.display === 'block') {
+          buildStore();
+        }
+        // If the stats page is open, update it
+        if (document.getElementById('statsSection').style.display === 'block') {
+          buildStats();
+        }
+        pickNewWord();
+      } else if ((isCapitalWord && value.length > 0 && value[0] !== currentWord[0]) || 
+                 (!isCapitalWord && !currentWord.toLowerCase().startsWith(value.toLowerCase())) ||
+                 (value.length > 0 && value.length <= currentWord.length && value !== currentWord.substring(0, value.length))) {
+        // For capital words: if first character doesn't match exactly, mark as wrong
+        // For lowercase words: if input doesn't start with the word, mark as wrong
+        // For any word: if any character doesn't match exactly (including special chars), mark as wrong
+        total++;
+        streak = 0;
+        
+        // Track letter statistics for incorrect word
+        trackLetterStats(currentWord, value, false);
+        // Calculate penalty
+        let penalty = calculateWordReward(currentWord);
+        let reduction = Math.min(1, mistakePenaltyReductionLevel * 0.1);
+        let penaltyToApply = Math.round(penalty * (1 - reduction));
+        coins = Math.max(0, coins - penaltyToApply);
+        updateStats();
+        
+        // Show score popup for incorrect word
+        if (penaltyToApply > 0) {
+          showScorePopup(penaltyToApply, false, currentWordDiv);
+        }
+        
+        // If the stats page is open, update it
+        if (document.getElementById('statsSection').style.display === 'block') {
+          buildStats();
+        }
+        
+        // Highlight the word in red
+        currentWordDiv.classList.add('word-error');
+        currentWordDiv.innerHTML = currentWord + (penaltyToApply > 0 ? ` <span style='color:#dc3545;font-size:0.9em;'>(-${penaltyToApply} coins)</span>` : '');
+        wordInput.disabled = true;
+        wordInput.value = '';
+        if (errorTimeout) clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => {
+          console.log('Timeout triggered: resetting error state and moving to next word');
+          currentWordDiv.classList.remove('word-error');
+          wordInput.disabled = false;
+          wordInput.value = '';
+          wordInput.focus({ preventScroll: true });
+          try {
+            pickNewWord();
+          } catch (e) {
+            console.error('Error in pickNewWord:', e);
+          }
+        }, 700);
+      } else {
+        renderCurrentWord(value);
+      }
+    }
+
+    function buildKeyboard() {
+      virtualKeyboard.innerHTML = '';
+      let currentLetter = '';
+      if (currentWord && typeof wordInput !== 'undefined' && wordInput.value !== undefined) {
+        currentLetter = currentWord[wordInput.value.length] || '';
+      }
+      const rows = ['qwertyuiop', 'asdfghjkl;', 'zxcvbnm'];
+      rows.forEach(row => {
+        const div = document.createElement('div');
+        for (let key of row) {
+          const btn = document.createElement('button');
+          btn.textContent = key;
+          btn.disabled = !unlockedLetters.has(key);
+          // Highlight the current letter (case-insensitive)
+          if (key === (currentLetter || '').toLowerCase()) {
+            btn.classList.add('vk-current');
+          }
+          div.appendChild(btn);
+        }
+        virtualKeyboard.appendChild(div);
+      });
+    }
+
+    function closeAllSections() {
+      document.getElementById('storeSection').style.display = 'none';
+      document.getElementById('statsSection').style.display = 'none';
+      document.getElementById('wordManagerSection').style.display = 'none';
+      document.getElementById('prestigeStoreSection').style.display = 'none';
+      document.getElementById('devStoreSection').style.display = 'none';
+    }
+
+    function toggleSection(section) {
+      // Determine which section is currently open
+      const sections = {
+        store: document.getElementById('storeSection'),
+        stats: document.getElementById('statsSection'),
+        wordManager: document.getElementById('wordManagerSection'),
+        prestigeStore: document.getElementById('prestigeStoreSection'),
+        devStore: document.getElementById('devStoreSection'),
+      };
+      const buttons = {
+        store: document.getElementById('storeMainBtn'),
+        stats: document.getElementById('statsMainBtn'),
+        wordManager: document.getElementById('wordListsMainBtn'),
+        prestigeStore: document.getElementById('prestigeStoreMainBtn'),
+        devStore: document.getElementById('devStoreMainBtn'),
+      };
+      // If the section is already open, close all and reset button labels
+      if (sections[section] && sections[section].style.display === 'block') {
+        closeAllSections();
+        Object.keys(buttons).forEach(key => {
+          if (buttons[key]) {
+            buttons[key].textContent = buttons[key].getAttribute('data-label') || buttons[key].textContent.replace(/^Close /, '');
+          }
+        });
+        return;
+      }
+      // Otherwise, close all, open the selected, and update button labels
+      closeAllSections();
+      Object.keys(buttons).forEach(key => {
+        if (buttons[key]) {
+          buttons[key].textContent = buttons[key].getAttribute('data-label') || buttons[key].textContent.replace(/^Close /, '');
+        }
+      });
+      if (sections[section]) {
+        sections[section].style.display = 'block';
+        // Update the button label
+        if (buttons[section]) {
+          if (!buttons[section].getAttribute('data-label')) {
+            buttons[section].setAttribute('data-label', buttons[section].textContent);
+          }
+          buttons[section].textContent = 'Close ' + (section === 'store' ? 'Store' :
+                                                     section === 'devStore' ? 'Dev Store' :
+                                                     section === 'prestigeStore' ? 'Prestige Store' :
+                                                     section === 'wordManager' ? 'Word Lists' :
+                                                     section === 'stats' ? 'Stats' : '');
+        }
+        // Build the section if needed
+        if (section === 'store') buildStore();
+        if (section === 'stats') buildStats();
+        if (section === 'prestigeStore') buildPrestigeStore();
+        if (section === 'devStore') buildDevStore();
+      }
+    }
+
+    function updatePrestigeStoreButtonLabel() {
+      const prestigeStoreBtn = document.getElementById('prestigeStoreMainBtn');
+      const prestigeStoreSection = document.getElementById('prestigeStoreSection');
+      if (prestigeStoreBtn && prestigeStoreSection) {
+        if (prestigeStoreSection.style.display === 'block') {
+          prestigeStoreBtn.textContent = 'Close Prestige Store';
+        } else {
+          prestigeStoreBtn.textContent = 'Prestige Store';
+        }
+      }
+    }
+
+    function updatePrestigeStoreButtonVisibility() {
+      const prestigeStoreBtn = document.getElementById('prestigeStoreMainBtn');
+      if (prestigeLevel > 0) {
+        prestigeStoreBtn.style.display = 'inline-block';
+      } else {
+        prestigeStoreBtn.style.display = 'none';
+      }
+    }
+
+    function updateDevStoreButtonLabel() {
+      const devStoreBtn = document.getElementById('devStoreMainBtn');
+      const devStoreSection = document.getElementById('devStoreSection');
+      if (devStoreBtn && devStoreSection) {
+        if (devStoreSection.style.display === 'block') {
+          devStoreBtn.textContent = 'Close Dev Store';
+        } else {
+          devStoreBtn.textContent = 'Dev Store';
+        }
+      }
+    }
+
+    function updateDevStoreButtonVisibility() {
+      const devStoreBtn = document.getElementById('devStoreMainBtn');
+      if (devModeEnabled) {
+        devStoreBtn.style.display = 'inline-block';
+      } else {
+        devStoreBtn.style.display = 'none';
+      }
+    }
+
+    let currentStoreTab = 'letters';
+    // Add toggle state for affordable-only filter in both stores
+    let showAffordableOnlyStore = false;
+    let showAffordableOnlyPrestige = false;
+
+    function buildStore() {
+      storeItemsDiv.innerHTML = '';
+      // Remove any existing toggle
+      const storeSection = document.getElementById('storeSection');
+      const oldToggle = document.getElementById('affordableOnlyStoreToggleContainer');
+      if (oldToggle && storeSection) {
+        oldToggle.remove();
+      }
+      // Add affordable-only toggle UI at the very top, with checkbox right next to label
+      let toggleDiv = document.createElement('div');
+      toggleDiv.id = 'affordableOnlyStoreToggleContainer';
+      toggleDiv.style.display = 'flex';
+      toggleDiv.style.alignItems = 'center';
+      toggleDiv.style.justifyContent = 'flex-start';
+      toggleDiv.style.marginBottom = '1em';
+      toggleDiv.innerHTML = `<label style="font-size:1em;display:flex;align-items:center;gap:0.4em;"><input type="checkbox" id="affordableOnlyStoreToggle" style="margin:0;vertical-align:middle;" ${showAffordableOnlyStore ? 'checked' : ''}/>Show Only Affordable Upgrades (Sort by Price)</label>`;
+      // Insert toggle at the very top of the store section
+      if (storeSection && storeSection.firstChild) {
+        storeSection.insertBefore(toggleDiv, storeSection.firstChild.nextSibling); // after h2
+      } else {
+        storeItemsDiv.appendChild(toggleDiv);
+      }
+      setTimeout(() => {
+        const toggle = document.getElementById('affordableOnlyStoreToggle');
+        if (toggle) {
+          toggle.onchange = (e) => {
+            showAffordableOnlyStore = e.target.checked;
+            buildStore();
+          };
+        }
+      }, 0);
+      // Helper to filter and sort items
+      function filterAndSort(items) {
+        if (showAffordableOnlyStore) {
+          items = items.filter(item => item.price !== undefined && coins >= item.price);
+          items.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+        }
+        return items;
+      }
+      if (currentStoreTab === 'letters') {
+        // Helper to build a section for letters
+        function buildLetterSection(title, letters) {
+          const section = document.createElement('div');
+          section.innerHTML = `<h4>${title}</h4>`;
+          const grid = document.createElement('div');
+          grid.className = 'store-grid-letters';
+          let visibleLetters = letters.filter(letter => !purchases.letters.has(letter));
+          // Build item objects for filtering/sorting
+          let letterItems = visibleLetters.map(letter => ({
+            id: letter,
+            name: letter,
+            price: letterPrices[letter],
+            letter: letter
+          }));
+          letterItems = filterAndSort(letterItems);
+          letterItems.forEach((item, idx) => {
+            const price = item.price;
+            const letter = item.letter;
+            const div = document.createElement('div');
+            div.className = 'store-item' + (coins < price ? ' disabled' : '');
+            div.innerHTML = `<div>${letter.toUpperCase()}</div><div>${price} coins</div>`;
+            if (coins >= price) {
+              div.onclick = () => purchaseItem({id: letter, name: letter, price});
+            }
+            grid.appendChild(div);
+          });
+          section.appendChild(grid);
+          storeItemsDiv.appendChild(section);
+        }
+        buildLetterSection('Vowels', vowels);
+        buildLetterSection('Consonants', consonants);
+      } else if (currentStoreTab === 'keyboard') {
+        // Keyboard Upgrades section
+        const upgradeSection = document.createElement('div');
+        upgradeSection.innerHTML = `<h4>Keyboard Upgrades</h4>`;
+        // Helper to add an upgrade item
+        let upgradeItems = [];
+        upgradeItems.push({
+          label: 'Keyboard Upgrade (+10% per level)',
+          value: `${(getKeyboardMultiplier()*100-100).toFixed(0)}%`,
+          level: keyboardUpgradeLevel,
+          price: keyboardUpgradePrice,
+          id: 'keyboard-upgrade',
+          desc: 'Increases all points by 10% per level',
+          type: 'keyboardupgrade'
+        });
+        if (!chooseWordListUnlocked) {
+          upgradeItems.push({
+            label: 'Choose Word Lists',
+            value: '',
+            level: '',
+            price: chooseWordListUpgradePrice,
+            id: 'choose-word-list-upgrade',
+            desc: 'Unlocks the ability to select from pre-made word lists',
+            type: 'keyboardupgrade'
+          });
+        }
+        if (chooseWordListUnlocked && !addCustomWordListUnlocked) {
+          upgradeItems.push({
+            label: 'Add Custom Word List',
+            value: '',
+            level: '',
+            price: addCustomWordListUpgradePrice,
+            id: 'add-custom-word-list-upgrade',
+            desc: 'Unlocks the ability to add your own custom word lists',
+            type: 'keyboardupgrade'
+          });
+        }
+        upgradeItems.push({
+          label: 'Accuracy Multiplier',
+          value: accuracyMultiplier.toFixed(2),
+          level: accuracyUpgradeLevel,
+          price: accuracyUpgradePrice,
+          id: 'accuracy-multiplier-upgrade',
+          desc: 'Extra multiplier per % accuracy',
+          type: 'keyboardupgrade'
+        });
+        upgradeItems.push({
+          label: 'WPM Multiplier',
+          value: wpmMultiplier.toFixed(2),
+          level: wpmUpgradeLevel,
+          price: wpmUpgradePrice,
+          id: 'wpm-multiplier-upgrade',
+          desc: 'Extra multiplier per WPM',
+          type: 'keyboardupgrade'
+        });
+        upgradeItems.push({
+          label: 'Streak Multiplier',
+          value: streakMultiplier.toFixed(2),
+          level: streakUpgradeLevel,
+          price: streakUpgradePrice,
+          id: 'streak-multiplier-upgrade',
+          desc: 'Extra multiplier per streak',
+          type: 'keyboardupgrade'
+        });
+        if (!targetedPracticeUnlocked) {
+          upgradeItems.push({
+            label: 'Targeted Practice',
+            value: '',
+            level: '',
+            price: targetedPracticePrice,
+            id: 'targeted-practice-upgrade',
+            desc: 'Words will prioritize letters with your worst accuracy scores',
+            type: 'keyboardupgrade'
+          });
+        } else {
+          const nextBonus = Math.round((targetedWordBonus + 0.05) * 100);
+          const currentBonus = Math.round(targetedWordBonus * 100);
+          upgradeItems.push({
+            label: 'Targeted Word Bonus',
+            value: `+${currentBonus}% (Next: +${nextBonus}%)`,
+            level: '',
+            price: targetedWordBonusUpgradePrice,
+            id: 'targeted-word-bonus-upgrade',
+            desc: 'Increase bonus for completing targeted words',
+            type: 'keyboardupgrade'
+          });
+        }
+        // Filter and sort upgrades
+        upgradeItems = filterAndSort(upgradeItems);
+        upgradeItems.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'store-item store-item-large' + (coins < item.price ? ' disabled' : '');
+          div.innerHTML = `<div><strong>${item.label}</strong></div><div>${item.desc}</div>${item.level !== '' ? `<div>Level: ${item.level}</div>` : ''}${item.value !== '' ? `<div>Current: ${item.value}</div>` : ''}<div>${item.price} coins</div>`;
+          if (coins >= item.price) {
+            div.onclick = () => purchaseItem({id: item.id, price: item.price, type: item.type});
+          }
+          upgradeSection.appendChild(div);
+        });
+        storeItemsDiv.appendChild(upgradeSection);
+      } else if (currentStoreTab === 'wordlength') {
+        // Word Upgrades section
+        const wordUpgradesSection = document.createElement('div');
+        wordUpgradesSection.innerHTML = `<h4>Word Upgrades</h4>`;
+        let wordUpgradeItems = [];
+        const maxAllowed = getCurrentListMaxWordLength();
+        const currentMaxWordLength = 3 + prestigeMaxWordLengthLevel + maxWordLengthUpgradeLevel;
+        const nextMaxWordLengthUpgradeLevel = maxWordLengthUpgradeLevel + 1;
+        const nextMaxWordLengthCost = 2000 * Math.pow(1.5, maxWordLengthUpgradeLevel);
+        // Only show Max Word Length upgrade if not at max
+        if (maxWordLength < maxAllowed) {
+          wordUpgradeItems.push({
+            label: 'Max Word Length',
+            value: currentMaxWordLength,
+            level: maxWordLengthUpgradeLevel,
+            price: nextMaxWordLengthCost,
+            id: 'max-word-length-upgrade',
+            desc: `Increase max word length by 1 (Max: ${maxAllowed})`,
+            type: 'wordupgrade'
+          });
+        }
+        wordUpgradeItems.push({
+          label: 'Consonant Value',
+          value: consonantValue,
+          level: consonantUpgradeLevel,
+          price: consonantUpgradePrice,
+          id: 'consonant-upgrade',
+          desc: 'Points per consonant',
+          type: 'wordupgrade'
+        });
+        wordUpgradeItems.push({
+          label: 'Vowel Value',
+          value: vowelValue,
+          level: vowelUpgradeLevel,
+          price: vowelUpgradePrice,
+          id: 'vowel-upgrade',
+          desc: 'Points per vowel',
+          type: 'wordupgrade'
+        });
+        wordUpgradeItems.push({
+          label: 'Length Bonus',
+          value: lengthBonus,
+          level: lengthBonusUpgradeLevel,
+          price: lengthBonusUpgradePrice,
+          id: 'length-bonus-upgrade',
+          desc: 'Bonus per letter in word',
+          type: 'wordupgrade'
+        });
+        let capitalNextChance = Math.min(100, (capitalWordUpgradeLevel + 1) * 10);
+        let capitalNextBonus = capitalWordUpgradeLevel < 10 ? 2 : getCapitalWordBonus() + 0.1;
+        wordUpgradeItems.push({
+          label: 'Capital Letter Words',
+          value: `${(getCapitalWordChance()*100).toFixed(0)}% chance, ${getCapitalWordBonus().toFixed(1)}x bonus`,
+          level: capitalWordUpgradeLevel,
+          price: capitalWordUpgradePrice,
+          id: 'capital-word-upgrade',
+          desc: `Next: ${capitalNextChance}% chance, ${capitalNextBonus.toFixed(1)}x bonus`,
+          type: 'wordupgrade'
+        });
+        let semicolonNextChance = Math.min(100, (semicolonWordUpgradeLevel + 1) * 10);
+        let semicolonNextBonus = semicolonWordUpgradeLevel < 10 ? 1.5 : getSemicolonWordBonus() + 0.1;
+        wordUpgradeItems.push({
+          label: 'Semicolon Words',
+          value: `${(getSemicolonWordChance()*100).toFixed(0)}% chance, ${getSemicolonWordBonus().toFixed(1)}x bonus`,
+          level: semicolonWordUpgradeLevel,
+          price: semicolonWordUpgradePrice,
+          id: 'semicolon-word-upgrade',
+          desc: `Next: ${semicolonNextChance}% chance, ${semicolonNextBonus.toFixed(1)}x bonus`,
+          type: 'wordupgrade'
+        });
+        // Only show Mistake Penalty Reduction if not at 100% and not prestigeMistakeForgiveness
+        if (!prestigeMistakeForgiveness && mistakePenaltyReductionLevel < 10) {
+          wordUpgradeItems.push({
+            label: 'Mistake Penalty Reduction',
+            value: `${mistakePenaltyReductionLevel * 10}%`,
+            level: mistakePenaltyReductionLevel,
+            price: mistakePenaltyReductionPrice,
+            id: 'mistake-penalty-reduction-upgrade',
+            desc: 'Reduces coin penalty for mistakes by 10% per level (max 100%)',
+            type: 'wordupgrade'
+          });
+        }
+        // Filter and sort upgrades
+        wordUpgradeItems = filterAndSort(wordUpgradeItems);
+        wordUpgradeItems.forEach(item => {
+          const maxAllowed = getCurrentListMaxWordLength();
+          let isDisabled = coins < item.price || item.disabled;
+          const div = document.createElement('div');
+          div.className = 'store-item store-item-large' + (isDisabled ? ' disabled' : '');
+          div.innerHTML = `<div><strong>${item.label}</strong></div><div>${item.desc}</div><div>Level: ${item.level}</div><div>Current: ${item.value}</div><div>${item.price} coins</div>`;
+          if (!isDisabled) {
+            div.onclick = () => purchaseItem({id: item.id, price: item.price, type: item.type});
+          }
+          wordUpgradesSection.appendChild(div);
+        });
+        storeItemsDiv.appendChild(wordUpgradesSection);
+      }
+    }
+
+    // Restore original store tab button event listeners
+    setTimeout(() => {
+      document.getElementById('storeTabLetters').onclick = () => { currentStoreTab = 'letters'; buildStore(); document.getElementById('storeSection').style.display = 'block'; updateStoreButtonLabel(); };
+      document.getElementById('storeTabKeyboard').onclick = () => { currentStoreTab = 'keyboard'; buildStore(); document.getElementById('storeSection').style.display = 'block'; updateStoreButtonLabel(); };
+      document.getElementById('storeTabWordLength').onclick = () => { currentStoreTab = 'wordlength'; buildStore(); document.getElementById('storeSection').style.display = 'block'; updateStoreButtonLabel(); };
+    }, 0);
+
+    function updateStoreButtonLabel() {
+      const storeBtn = document.getElementById('storeMainBtn');
+      const storeSection = document.getElementById('storeSection');
+      if (storeBtn && storeSection) {
+        if (storeSection.style.display === 'block') {
+          storeBtn.textContent = 'Close Store';
+        } else {
+          storeBtn.textContent = 'Store';
+        }
+      }
+    }
+
+    function updateWordListsButtonLabel() {
+      const wordListsBtn = document.getElementById('wordListsMainBtn');
+      const wordManagerSection = document.getElementById('wordManagerSection');
+      if (wordListsBtn && wordManagerSection) {
+        if (wordManagerSection.style.display === 'block') {
+          wordListsBtn.textContent = 'Close Word Lists';
+        } else {
+          wordListsBtn.textContent = 'Word Lists';
+        }
+      }
+    }
+
+    function purchaseItem(item) {
+      // Handle prestige upgrades FIRST, before any coin checks
+      if (item.type === 'prestigeupgrade') {
+        if (item.id === 'prestige-streak-penalty-upgrade') {
+          if (prestigeStars >= item.price && prestigeStreakPenalty > 1) {
+            prestigeStars -= item.price;
+            prestigeStreakPenalty--;
+            prestigeStreakPenaltyLevel++;
+            prestigeStreakPenaltyUpgradeCost = Math.round(prestigeStreakPenaltyUpgradeCost * 1.5);
+            buildPrestigeStore();
+          }
+        } else if (item.id === 'prestige-mistake-forgiveness-upgrade') {
+          if (prestigeStars >= item.price && !prestigeMistakeForgiveness) {
+            prestigeStars -= item.price;
+            prestigeMistakeForgiveness = true;
+            buildPrestigeStore();
+          }
+        } else if (item.id === 'prestige-max-word-length-boost-upgrade') {
+          if (prestigeStars >= item.price) {
+            prestigeStars -= item.price;
+            prestigeMaxWordLengthLevel++;
+            buildPrestigeStore();
+          }
+        } else if (item.id && item.id.startsWith('prestige-permanent-letter-')) {
+          if (prestigeStars >= item.price && !prestigePermanentLetters.includes(item.letter)) {
+            prestigeStars -= item.price;
+            prestigePermanentLetters.push(item.letter);
+            unlockedLetters.add(item.letter);
+            purchases.letters.add(item.letter);
+            // Increase price for remaining vowels or consonants
+            if (item.isVowel) {
+              prestigeVowelPrice *= 2;
+            } else {
+              prestigeConsonantPrice *= 2;
+            }
+            buildPrestigeStore();
+            // Refresh the permanent letter unlocks page if visible
+            const permLetterUnlocksSection = document.getElementById('permLetterUnlocksSection');
+            if (permLetterUnlocksSection && permLetterUnlocksSection.style.display === 'block') {
+              buildPermLetterUnlocks();
+            }
+          }
+        } else if (item.id === 'prestige-coin-multiplier-upgrade') {
+          if (prestigeStars >= item.price) {
+            prestigeUpgradeLevel++;
+            prestigeStars -= item.price;
+            prestigeCoinMultiplier += 0.1;
+            buildPrestigeStore();
+          }
+        }
+        // Always return after handling a prestige upgrade
+        return;
+      }
+      // Regular store logic (uses coins)
+      if (coins >= item.price) {
+        coins -= item.price;
+        if (item.id === 'keyboard-upgrade') {
+          keyboardUpgradeLevel++;
+          keyboardUpgradePrice = Math.round(keyboardUpgradePrice * (1.5 + 0.1 * keyboardUpgradeLevel));
+        } else if (item.id === 'custom-word-list-upgrade') {
+          customWordListUnlocked = true;
+          const wordListsBtn = document.getElementById('wordListsMainBtn');
+          if (wordListsBtn) {
+            wordListsBtn.style.display = 'inline-block';
+            wordListsBtn.disabled = false;
+          }
+          updateWordListManagerUI();
+          populateWordListSelect();
+          wordListSelect.value = 'homerow';
+        } else if (item.id === 'choose-word-list-upgrade') {
+          chooseWordListUnlocked = true;
+          const wordListsBtn = document.getElementById('wordListsMainBtn');
+          if (wordListsBtn) {
+            wordListsBtn.style.display = 'inline-block';
+            wordListsBtn.disabled = false;
+          }
+          updateWordListManagerUI();
+          populateWordListSelect();
+          wordListSelect.value = 'homerow';
+        } else if (item.id === 'add-custom-word-list-upgrade') {
+          addCustomWordListUnlocked = true;
+          updateWordListManagerUI();
+        } else if (item.id === 'max-word-length-upgrade') {
+          maxWordLengthUpgradeLevel++;
+          maxWordLength++;
+          maxWordLengthUpgradePrice = Math.round(maxWordLengthUpgradePrice * (1.5 + 0.1 * maxWordLengthUpgradeLevel));
+        } else if (item.id === 'consonant-upgrade') {
+          consonantUpgradeLevel++;
+          consonantValue += 1;
+          consonantUpgradePrice = Math.round(consonantUpgradePrice * (1.5 + 0.1 * consonantUpgradeLevel));
+        } else if (item.id === 'vowel-upgrade') {
+          vowelUpgradeLevel++;
+          vowelValue += 2;
+          vowelUpgradePrice = Math.round(vowelUpgradePrice * (1.5 + 0.1 * vowelUpgradeLevel));
+        } else if (item.id === 'length-bonus-upgrade') {
+          lengthBonusUpgradeLevel++;
+          lengthBonus += 1;
+          lengthBonusUpgradePrice = Math.round(lengthBonusUpgradePrice * (1.5 + 0.1 * lengthBonusUpgradeLevel));
+        } else if (item.id === 'capital-word-upgrade') {
+          capitalWordUpgradeLevel++;
+          capitalWordUpgradePrice = Math.round(capitalWordUpgradePrice * (1.5 + 0.1 * capitalWordUpgradeLevel));
+        } else if (item.id === 'semicolon-word-upgrade') {
+          semicolonWordUpgradeLevel++;
+          semicolonWordUpgradePrice = Math.round(semicolonWordUpgradePrice * (1.5 + 0.1 * semicolonWordUpgradeLevel));
+        } else if (item.id === 'accuracy-multiplier-upgrade') {
+          accuracyUpgradeLevel++;
+          accuracyMultiplier += 0.02;
+          accuracyUpgradePrice = Math.round(accuracyUpgradePrice * (1.5 + 0.1 * accuracyUpgradeLevel));
+        } else if (item.id === 'wpm-multiplier-upgrade') {
+          wpmUpgradeLevel++;
+          wpmMultiplier += 0.02;
+          wpmUpgradePrice = Math.round(wpmUpgradePrice * (1.5 + 0.1 * wpmUpgradeLevel));
+        } else if (item.id === 'streak-multiplier-upgrade') {
+          streakUpgradeLevel++;
+          streakMultiplier += 0.02;
+          streakUpgradePrice = Math.round(streakUpgradePrice * (1.5 + 0.1 * streakUpgradeLevel));
+        } else if (item.id === 'targeted-practice-upgrade') {
+          targetedPracticeUnlocked = true;
+        } else if (item.id === 'mistake-penalty-reduction-upgrade') {
+          if (mistakePenaltyReductionLevel < 10) {
+            mistakePenaltyReductionLevel++;
+            mistakePenaltyReductionPrice = Math.round(mistakePenaltyReductionPrice * (1.5 + 0.1 * mistakePenaltyReductionLevel));
+          }
+        } else if (item.id === 'targeted-word-bonus-upgrade') {
+          targetedWordBonus += 0.05;
+          targetedWordBonusUpgradePrice = Math.round(targetedWordBonusUpgradePrice * 1.25);
+        } else if (item.type === 'prestigeupgrade' && item.id === 'prestige-coin-multiplier-upgrade') {
+          if (prestigeStars >= item.price) {
+            prestigeUpgradeLevel++;
+            prestigeStars -= item.price;
+            prestigeCoinMultiplier += 0.1;
+            buildPrestigeStore();
+          }
+        } else if (item.id === 'prestige-max-word-length-boost-upgrade') {
+          if (prestigeStars >= item.price) {
+            prestigeStars -= item.price;
+            prestigeMaxWordLengthLevel++;
+            buildPrestigeStore();
+          }
+        } else if (item.id && item.id.startsWith('prestige-permanent-letter-')) {
+          if (prestigeStars >= item.price && !prestigePermanentLetters.includes(item.letter)) {
+            prestigeStars -= item.price;
+            prestigePermanentLetters.push(item.letter);
+            unlockedLetters.add(item.letter);
+            purchases.letters.add(item.letter);
+            // Increase price for remaining vowels or consonants
+            if (item.isVowel) {
+              prestigeVowelPrice *= 2;
+            } else {
+              prestigeConsonantPrice *= 2;
+            }
+            buildPrestigeStore();
+            // Refresh the permanent letter unlocks page if visible
+            const permLetterUnlocksSection = document.getElementById('permLetterUnlocksSection');
+            if (permLetterUnlocksSection && permLetterUnlocksSection.style.display === 'block') {
+              buildPermLetterUnlocks();
+            }
+          }
+        } else if (item.id === 'prestige-streak-penalty-upgrade') {
+          if (prestigeStars >= item.price && prestigeStreakPenalty > 1) {
+            prestigeStars -= item.price;
+            prestigeStreakPenalty--;
+            prestigeStreakPenaltyLevel++;
+            prestigeStreakPenaltyUpgradeCost = Math.round(prestigeStreakPenaltyUpgradeCost * 1.5);
+            buildPrestigeStore();
+          }
+        } else if (item.id === 'prestige-mistake-forgiveness-upgrade') {
+          if (prestigeStars >= item.price && !prestigeMistakeForgiveness) {
+            prestigeStars -= item.price;
+            prestigeMistakeForgiveness = true;
+            buildPrestigeStore();
+          }
+        } else {
+          purchases.letters.add(item.id);
+          unlockedLetters.add(item.id);
+          // Double the price of remaining vowels or consonants only
+          if (vowels.includes(item.id)) {
+            vowels.forEach(v => {
+              if (!purchases.letters.has(v)) {
+                letterPrices[v] *= 2;
+              }
+            });
+          } else if (consonants.includes(item.id)) {
+            consonants.forEach(c => {
+              if (!purchases.letters.has(c)) {
+                letterPrices[c] *= 2;
+              }
+            });
+          }
+        }
+        updateStats();
+        buildKeyboard();
+        saveProgress();
+        // Rebuild the store after a short delay to ensure UI updates and event listeners are attached
+        setTimeout(buildStore, 0);
+        // Focus the word input so the user can keep typing
+        wordInput.focus({ preventScroll: true });
+      }
+    }
+
+    function addNewWordList() {
+      const name = document.getElementById('newListName').value;
+      const words = document.getElementById('newListWords').value.split(',').map(w => w.trim());
+      if (name && words.length > 0) {
+        wordLists.push({ id: Date.now(), name, words });
+        populateWordListSelect();
+        displayCurrentWordLists();
+        document.getElementById('newListName').value = '';
+        document.getElementById('newListWords').value = '';
+        enforceMaxWordLengthLimit();
+      }
+    }
+
+    function displayCurrentWordLists() {
+      const div = document.getElementById('currentWordLists');
+      div.innerHTML = '';
+      wordLists.forEach(list => {
+        const el = document.createElement('div');
+        el.innerHTML = `<strong>${list.name}</strong> (${list.words.length} words)`;
+        div.appendChild(el);
+      });
+      enforceMaxWordLengthLimit();
+    }
+
+    function updateWordListManagerUI() {
+      const dropdownArea = document.getElementById('wordListDropdownArea');
+      const addCustomArea = document.getElementById('addCustomListArea');
+      if (dropdownArea) dropdownArea.style.display = chooseWordListUnlocked ? 'block' : 'none';
+      if (addCustomArea) addCustomArea.style.display = addCustomWordListUnlocked ? 'block' : 'none';
+      // Refresh the dropdown and set to homerow if unlocked
+      if (chooseWordListUnlocked) {
+        populateWordListSelect();
+        wordListSelect.value = 'homerow';
+      }
+      wordInput.focus({ preventScroll: true });
+    }
+
+    function saveProgress() {
+      const data = {
+        coins, score, streak, correct, total,
+        unlockedLetters: Array.from(unlockedLetters),
+        purchases: { letters: Array.from(purchases.letters) },
+        letterPrices,
+        keyboardUpgradeLevel,
+        keyboardUpgradePrice,
+        wordLists,
+        customWordListUnlocked,
+        devModeEnabled,
+        maxWordLength, maxWordLengthUpgradePrice, maxWordLengthUpgradeLevel,
+        consonantValue, consonantUpgradeLevel, consonantUpgradePrice,
+        vowelValue, vowelUpgradeLevel, vowelUpgradePrice,
+        lengthBonus, lengthBonusUpgradeLevel, lengthBonusUpgradePrice,
+        accuracyMultiplier, accuracyUpgradeLevel, accuracyUpgradePrice,
+        wpmMultiplier, wpmUpgradeLevel, wpmUpgradePrice,
+        streakMultiplier, streakUpgradeLevel, streakUpgradePrice,
+        capitalWordUpgradeLevel, capitalWordUpgradePrice,
+        chooseWordListUnlocked,
+        addCustomWordListUnlocked,
+        chooseWordListUpgradePrice,
+        addCustomWordListUpgradePrice,
+        mistakePenaltyReductionLevel,
+        mistakePenaltyReductionPrice,
+        semicolonWordUpgradeLevel,
+        semicolonWordUpgradePrice,
+        targetedPracticeUnlocked,
+        currentWordIsTargeted,
+        targetedWordBonus,
+        targetedWordBonusUpgradePrice,
+        letterStats,
+        prestigeLevel,
+        prestigeStars,
+        nextPrestigeLevel,
+        prestigeCoinMultiplier,
+        prestigeUnlocked,
+        prestigeUpgradePrice,
+        prestigeUpgradeLevel,
+        prestigeStreakPenalty,
+        prestigeStreakPenaltyLevel,
+        prestigeStreakPenaltyMax,
+        prestigeStreakPenaltyUpgradeCost,
+        prestigeMistakeForgiveness,
+        prestigeMistakeForgivenessCost,
+        prestigeMaxWordLengthLevel,
+        prestigeMaxWordLengthBaseCost,
+        prestigePermanentLetters,
+        prestigePermanentLetterCost,
+        prestigeVowelPrice,
+        prestigeConsonantPrice
+      };
+      localStorage.setItem('typingTutorSave', JSON.stringify(data));
+    }
+
+    function loadProgress() {
+      const saved = localStorage.getItem('typingTutorSave');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          coins = data.coins ?? coins;
+          score = data.score ?? score;
+          streak = data.streak ?? streak;
+          correct = data.correct ?? correct;
+          total = data.total ?? total;
+          unlockedLetters = new Set(data.unlockedLetters || []);
+          purchases.letters = new Set(data.purchases.letters || []);
+          if (data.letterPrices) letterPrices = data.letterPrices;
+          if (typeof data.keyboardUpgradeLevel === 'number') keyboardUpgradeLevel = data.keyboardUpgradeLevel;
+          if (typeof data.keyboardUpgradePrice === 'number') keyboardUpgradePrice = data.keyboardUpgradePrice;
+          if (Array.isArray(data.wordLists)) wordLists = data.wordLists;
+          if (typeof data.customWordListUnlocked === 'boolean') customWordListUnlocked = data.customWordListUnlocked;
+          if (typeof data.devModeEnabled === 'boolean') devModeEnabled = data.devModeEnabled;
+          if (typeof data.maxWordLength === 'number') maxWordLength = data.maxWordLength;
+          if (typeof data.maxWordLengthUpgradePrice === 'number') maxWordLengthUpgradePrice = data.maxWordLengthUpgradePrice;
+          if (typeof data.maxWordLengthUpgradeLevel === 'number') maxWordLengthUpgradeLevel = data.maxWordLengthUpgradeLevel;
+          if (typeof data.consonantValue === 'number') consonantValue = data.consonantValue;
+          if (typeof data.consonantUpgradeLevel === 'number') consonantUpgradeLevel = data.consonantUpgradeLevel;
+          if (typeof data.consonantUpgradePrice === 'number') consonantUpgradePrice = data.consonantUpgradePrice;
+          if (typeof data.vowelValue === 'number') vowelValue = data.vowelValue;
+          if (typeof data.vowelUpgradeLevel === 'number') vowelUpgradeLevel = data.vowelUpgradeLevel;
+          if (typeof data.vowelUpgradePrice === 'number') vowelUpgradePrice = data.vowelUpgradePrice;
+          if (typeof data.lengthBonus === 'number') lengthBonus = data.lengthBonus;
+          if (typeof data.lengthBonusUpgradeLevel === 'number') lengthBonusUpgradeLevel = data.lengthBonusUpgradeLevel;
+          if (typeof data.lengthBonusUpgradePrice === 'number') lengthBonusUpgradePrice = data.lengthBonusUpgradePrice;
+          if (typeof data.accuracyMultiplier === 'number') accuracyMultiplier = data.accuracyMultiplier;
+          if (typeof data.accuracyUpgradeLevel === 'number') accuracyUpgradeLevel = data.accuracyUpgradeLevel;
+          if (typeof data.accuracyUpgradePrice === 'number') accuracyUpgradePrice = data.accuracyUpgradePrice;
+          if (typeof data.wpmMultiplier === 'number') wpmMultiplier = data.wpmMultiplier;
+          if (typeof data.wpmUpgradeLevel === 'number') wpmUpgradeLevel = data.wpmUpgradeLevel;
+          if (typeof data.wpmUpgradePrice === 'number') wpmUpgradePrice = data.wpmUpgradePrice;
+          if (typeof data.streakMultiplier === 'number') streakMultiplier = data.streakMultiplier;
+          if (typeof data.streakUpgradeLevel === 'number') streakUpgradeLevel = data.streakUpgradeLevel;
+          if (typeof data.streakUpgradePrice === 'number') streakUpgradePrice = data.streakUpgradePrice;
+          if (typeof data.capitalWordUpgradeLevel === 'number') capitalWordUpgradeLevel = data.capitalWordUpgradeLevel;
+          if (typeof data.capitalWordUpgradePrice === 'number') capitalWordUpgradePrice = data.capitalWordUpgradePrice;
+          if (typeof data.chooseWordListUnlocked === 'boolean') chooseWordListUnlocked = data.chooseWordListUnlocked;
+          if (typeof data.addCustomWordListUnlocked === 'boolean') addCustomWordListUnlocked = data.addCustomWordListUnlocked;
+          if (typeof data.chooseWordListUpgradePrice === 'number') chooseWordListUpgradePrice = data.chooseWordListUpgradePrice;
+          if (typeof data.addCustomWordListUpgradePrice === 'number') addCustomWordListUpgradePrice = data.addCustomWordListUpgradePrice;
+          if (typeof data.mistakePenaltyReductionLevel === 'number') mistakePenaltyReductionLevel = data.mistakePenaltyReductionLevel;
+          if (typeof data.mistakePenaltyReductionPrice === 'number') mistakePenaltyReductionPrice = data.mistakePenaltyReductionPrice;
+          if (typeof data.semicolonWordUpgradeLevel === 'number') semicolonWordUpgradeLevel = data.semicolonWordUpgradeLevel;
+          if (typeof data.semicolonWordUpgradePrice === 'number') semicolonWordUpgradePrice = data.semicolonWordUpgradePrice;
+          if (typeof data.targetedPracticeUnlocked === 'boolean') targetedPracticeUnlocked = data.targetedPracticeUnlocked;
+          if (typeof data.currentWordIsTargeted === 'boolean') currentWordIsTargeted = data.currentWordIsTargeted;
+          if (typeof data.targetedWordBonus === 'number') targetedWordBonus = data.targetedWordBonus;
+          if (typeof data.targetedWordBonusUpgradePrice === 'number') targetedWordBonusUpgradePrice = data.targetedWordBonusUpgradePrice;
+          if (data.letterStats) letterStats = data.letterStats;
+          if (typeof data.prestigeLevel === 'number') prestigeLevel = data.prestigeLevel;
+          if (typeof data.prestigeStars === 'number') prestigeStars = data.prestigeStars;
+          if (typeof data.nextPrestigeLevel === 'number') nextPrestigeLevel = data.nextPrestigeLevel;
+          if (typeof data.prestigeCoinMultiplier === 'number') prestigeCoinMultiplier = data.prestigeCoinMultiplier;
+          if (typeof data.prestigeUnlocked === 'boolean') prestigeUnlocked = data.prestigeUnlocked;
+          if (typeof data.prestigeUpgradePrice === 'number') prestigeUpgradePrice = data.prestigeUpgradePrice;
+          if (typeof data.prestigeUpgradeLevel === 'number') prestigeUpgradeLevel = data.prestigeUpgradeLevel;
+          if (typeof data.prestigeStreakPenalty === 'number') prestigeStreakPenalty = data.prestigeStreakPenalty;
+          if (typeof data.prestigeStreakPenaltyLevel === 'number') prestigeStreakPenaltyLevel = data.prestigeStreakPenaltyLevel;
+          if (typeof data.prestigeStreakPenaltyMax === 'number') prestigeStreakPenaltyMax = data.prestigeStreakPenaltyMax;
+          if (typeof data.prestigeStreakPenaltyUpgradeCost === 'number') prestigeStreakPenaltyUpgradeCost = data.prestigeStreakPenaltyUpgradeCost;
+          if (typeof data.prestigeMistakeForgiveness === 'boolean') prestigeMistakeForgiveness = data.prestigeMistakeForgiveness;
+          if (typeof data.prestigeMistakeForgivenessCost === 'number') prestigeMistakeForgivenessCost = data.prestigeMistakeForgivenessCost;
+          if (typeof data.prestigeMaxWordLengthLevel === 'number') prestigeMaxWordLengthLevel = data.prestigeMaxWordLengthLevel;
+          if (typeof data.prestigeMaxWordLengthBaseCost === 'number') prestigeMaxWordLengthBaseCost = data.prestigeMaxWordLengthBaseCost;
+          if (typeof data.prestigePermanentLetters === 'object') prestigePermanentLetters = data.prestigePermanentLetters;
+          if (typeof data.prestigePermanentLetterCost === 'number') prestigePermanentLetterCost = data.prestigePermanentLetterCost;
+          if (typeof data.prestigeVowelPrice === 'number') prestigeVowelPrice = data.prestigeVowelPrice;
+          if (typeof data.prestigeConsonantPrice === 'number') prestigeConsonantPrice = data.prestigeConsonantPrice;
+        } catch (e) {
+          console.error('Failed to load save data:', e);
+        }
+      }
+    }
+
+    function autoSave() {
+      saveProgress();
+      setTimeout(autoSave, 30000);
+    }
+
+    wordInput.addEventListener('input', handleInput);
+    wordListSelect.addEventListener('change', (e) => {
+      if (chooseWordListUnlocked && wordListSelect.value === 'homerow') {
+        // No need to set selectedListId, just pick new word
+        pickNewWord();
+      } else {
+        selectedListId = parseInt(e.target.value);
+        enforceMaxWordLengthLimit();
+        pickNewWord();
+      }
+      wordInput.focus({ preventScroll: true });
+    });
+
+    loadProgress();
+    populateWordListSelect();
+    buildKeyboard();
+    updateStats();
+    displayCurrentWordLists();
+    // Enable/disable Word Lists button based on unlock state
+    const wordListsBtn = document.getElementById('wordListsMainBtn');
+    if (wordListsBtn) {
+      wordListsBtn.style.display = chooseWordListUnlocked ? 'inline-block' : 'none';
+      wordListsBtn.disabled = !chooseWordListUnlocked;
+    }
+    updateWordListManagerUI(); // Ensure UI is correct on page load
+    updatePrestigeButtonVisibility(); // Ensure prestige button is set up correctly
+    updatePrestigeStoreButtonVisibility(); // Ensure prestige store button is set up correctly
+
+    // Set up dev mode toggle state (header)
+    const devToggleHeader = document.getElementById('devModeToggleHeader');
+    if (devToggleHeader) {
+      devToggleHeader.checked = devModeEnabled;
+      devToggleHeader.addEventListener('change', (e) => {
+        devModeEnabled = e.target.checked;
+        if (devModeEnabled) {
+          coins = 999999999;
+          updateStats();
+          if (document.getElementById('storeSection').style.display === 'block') {
+            buildStore();
+          }
+        }
+        updateDevStoreButtonVisibility();
+        saveProgress();
+        if (wordInput) wordInput.focus({ preventScroll: true });
+      });
+      if (devModeEnabled) {
+        coins = 999999999;
+        updateStats();
+        if (document.getElementById('storeSection').style.display === 'block') {
+          buildStore();
+        }
+        if (wordInput) wordInput.focus({ preventScroll: true });
+      }
+      updateDevStoreButtonVisibility();
+    }
+    pickNewWord();
+    autoSave();
+    renderCurrentWord('');
+    // When resetting progress, also reset all word upgrades
+    document.getElementById('resetProgressBtn').onclick = function() {
+      if (confirm('Are you sure you want to start again? This will erase all your progress.')) {
+        localStorage.removeItem('typingTutorSave');
+        wordLists = JSON.parse(JSON.stringify(defaultWordLists));
+        maxWordLength = 3;
+        maxWordLengthUpgradePrice = 2000;
+        maxWordLengthUpgradeLevel = 0;
+        consonantValue = 5;
+        consonantUpgradeLevel = 0;
+        consonantUpgradePrice = 500;
+        vowelValue = 8;
+        vowelUpgradeLevel = 0;
+        vowelUpgradePrice = 1000;
+        lengthBonus = 1;
+        lengthBonusUpgradeLevel = 0;
+        lengthBonusUpgradePrice = 2000;
+        accuracyMultiplier = 0.02;
+        accuracyUpgradeLevel = 0;
+        accuracyUpgradePrice = 2000;
+        wpmMultiplier = 0.02;
+        wpmUpgradeLevel = 0;
+        wpmUpgradePrice = 2000;
+        streakMultiplier = 0.02;
+        streakUpgradeLevel = 0;
+        streakUpgradePrice = 2000;
+        keyboardUpgradePrice = 3000;
+        customWordListUnlocked = false; // Reset custom word list unlock state
+        devModeEnabled = false; // Reset dev mode state
+        capitalWordUpgradeLevel = 0;
+        capitalWordUpgradePrice = 4000;
+        chooseWordListUnlocked = false;
+        addCustomWordListUnlocked = false;
+        chooseWordListUpgradePrice = 5000;
+        addCustomWordListUpgradePrice = 8000;
+        mistakePenaltyReductionLevel = 0;
+        mistakePenaltyReductionPrice = 2000;
+        semicolonWordUpgradeLevel = 0;
+        semicolonWordUpgradePrice = 1000;
+        targetedPracticeUnlocked = false;
+        currentWordIsTargeted = false;
+        targetedWordBonus = 0.25;
+        targetedWordBonusUpgradePrice = 2000;
+        prestigeLevel = 0;
+        prestigeStars = 0;
+        nextPrestigeLevel = 10;
+        prestigeCoinMultiplier = 1;
+        prestigeUnlocked = false;
+        prestigeUpgradePrice = 5000;
+        prestigeUpgradeLevel = 0;
+        updatePrestigeStoreButtonVisibility();
+        const wordListsBtn = document.getElementById('wordListsMainBtn');
+        if (wordListsBtn) wordListsBtn.disabled = true; // Disable button until unlocked
+        location.reload();
+      }
+    };
+    // --- Example Breakdown for the word 'example' ---
+    // Add toggle UI to the top left of the example score box
+    const exampleBoxContainer = document.createElement('div');
+    exampleBoxContainer.style.maxWidth = '900px';
+    exampleBoxContainer.style.margin = '2rem auto 0 auto';
+    exampleBoxContainer.innerHTML = `
+      <div style="position:relative;">
+        <span id="scoreBreakdownToggleLink" style="position:absolute;left:0;top:0;font-size:1em;cursor:pointer;color:#007bff;text-decoration:underline;user-select:none;">Show Current Word</span>
+        <div id="exampleBreakdown" style="padding-top:2rem;"></div>
+      </div>
+    `;
+    const oldBox = document.getElementById('exampleBreakdown');
+    if (oldBox) {
+      oldBox.parentNode.insertBefore(exampleBoxContainer, oldBox);
+      oldBox.remove();
+    } else {
+      document.body.appendChild(exampleBoxContainer);
+    }
+
+    let showCurrentWordInBreakdown = false;
+    const scoreBreakdownToggleLink = document.getElementById('scoreBreakdownToggleLink');
+    if (scoreBreakdownToggleLink) {
+      scoreBreakdownToggleLink.addEventListener('click', () => {
+        showCurrentWordInBreakdown = !showCurrentWordInBreakdown;
+        scoreBreakdownToggleLink.textContent = showCurrentWordInBreakdown ? 'Show Example Word' : 'Show Current Word';
+        renderExampleBreakdown();
+      });
+    }
+
+    function renderExampleBreakdown() {
+      let word = showCurrentWordInBreakdown && currentWord ? currentWord : 'example';
+      const consonantList = word.split('').filter(c => consonants.includes(c.toLowerCase()));
+      const vowelList = word.split('').filter(c => vowels.includes(c.toLowerCase()));
+      const len = word.length;
+      const baseConsonant = consonantList.length * consonantValue;
+      const baseVowel = vowelList.length * vowelValue;
+      const baseLength = len * lengthBonus;
+      const base = baseConsonant + baseVowel + baseLength;
+      // Use current stats for multipliers
+      const acc = total > 0 ? correct / total : 1;
+      const wpm = (() => {
+        const now = Date.now();
+        const recent = wordEntries.filter(e => now - e.ts <= 60000);
+        if (recent.length === 0) return 0;
+        const totalChars = recent.reduce((sum, e) => sum + e.chars, 0);
+        const windowMs = Math.max(now - recent[0].ts, 1000);
+        const windowMin = windowMs / 60000;
+        return (totalChars / 5) / windowMin;
+      })();
+      let mAcc = 1 + acc * accuracyMultiplier;
+      let mWpm = 1 + wpm * wpmMultiplier;
+      let mStreak = 1 + streak * streakMultiplier;
+      let mKeyboard = getKeyboardMultiplier();
+      let mPrestige = prestigeCoinMultiplier;
+      let exampleTotal = base * mAcc * mWpm * mStreak * mKeyboard * mPrestige;
+      
+      // Build bonus examples
+      let bonusExamples = '';
+      if (capitalWordUpgradeLevel > 0 || semicolonWordUpgradeLevel > 0) {
+        bonusExamples = '<div style="margin-top:0.5rem;"><strong>Bonus Examples:</strong><br>';
+        
+        if (capitalWordUpgradeLevel > 0 && /^[a-z]/.test(word)) {
+          const capitalTotal = Math.round(exampleTotal * 2);
+          bonusExamples += `<span style='margin-left:1em;color:#28a745;'>Capital "${word.charAt(0).toUpperCase() + word.slice(1)}": <b>${capitalTotal}</b> (2x)</span><br>`;
+        }
+        
+        if (semicolonWordUpgradeLevel > 0 && !word.endsWith(';')) {
+          const semicolonTotal = Math.round(exampleTotal * 1.5);
+          bonusExamples += `<span style='margin-left:1em;color:#ffc107;'>Semicolon "${word};": <b>${semicolonTotal}</b> (1.5x)</span><br>`;
+        }
+        
+        if (capitalWordUpgradeLevel > 0 && semicolonWordUpgradeLevel > 0 && /^[a-z]/.test(word) && !word.endsWith(';')) {
+          const bothTotal = Math.round(exampleTotal * 2 * 1.5);
+          bonusExamples += `<span style='margin-left:1em;color:#17a2b8;'>Both "${word.charAt(0).toUpperCase() + word.slice(1)};": <b>${bothTotal}</b> (3x)</span><br>`;
+        }
+        
+        bonusExamples += '</div>';
+      }
+      
+      // Build HTML
+      let html = `<div style="margin-top:2rem;padding:1rem;background:#f8f9fa;border-radius:8px;max-width:600px;border:2px solid #007bff;box-shadow:0 2px 8px #007bff22;">
+        <h3>${showCurrentWordInBreakdown && currentWord ? `Current Word Score Breakdown: <span style='font-family:monospace'>${word}</span>` : `Example Score Breakdown: <span style='font-family:monospace'>example</span>`}</h3>
+        <div style='margin-bottom:0.5rem;'>
+          <strong>Base Points:</strong><br>
+          <span style='margin-left:1em;'>Consonants (${consonantList.join(', ') || 'none'}): ${consonantList.length} × ${consonantValue} = <b>${baseConsonant}</b></span><br>
+          <span style='margin-left:1em;'>Vowels (${vowelList.join(', ') || 'none'}): ${vowelList.length} × ${vowelValue} = <b>${baseVowel}</b></span><br>
+          <span style='margin-left:1em;'>Length Bonus: ${len} × ${lengthBonus} = <b>${baseLength}</b></span><br>
+          <span style='margin-left:1em;'>Total Base: <b>${base}</b></span>
+        </div>
+        <div style='margin-bottom:0.5rem;'>
+          <strong>Multipliers:</strong><br>
+          <span style='margin-left:1em;'>Accuracy Multiplier: 1 + (Current Accuracy × ${accuracyMultiplier.toFixed(3)}) = <b>${mAcc.toFixed(3)}</b></span><br>
+          <span style='margin-left:1em;'>WPM Multiplier: 1 + (Current WPM × ${wpmMultiplier.toFixed(3)}) = <b>${mWpm.toFixed(3)}</b></span><br>
+          <span style='margin-left:1em;'>Streak Multiplier: 1 + (Current Streak × ${streakMultiplier.toFixed(3)}) = <b>${mStreak.toFixed(3)}</b></span><br>
+          <span style='margin-left:1em;'>Keyboard Upgrade: <b>${mKeyboard.toFixed(2)}x</b></span>`;
+      
+      // Add prestige multiplier if applicable
+      if (prestigeLevel > 0) {
+        html += `<br><span style='margin-left:1em;color:#ff6b35;'>Prestige Multiplier: <b>${mPrestige.toFixed(1)}x</b></span>`;
+      }
+      
+      html += `</div>
+        <div style='margin-bottom:0.5rem;'>
+          <strong>Total Score for "${word}":</strong> <span style='font-size:1.2em;color:#007bff'><b>${Math.round(exampleTotal)}</b></span>
+        </div>
+        ${bonusExamples}
+        <div style='font-size:0.95em;color:#666;'>* Uses your current accuracy, streak, and WPM for the calculation.</div>
+      </div>`;
+      let exDiv = document.getElementById('exampleBreakdown');
+      if (exDiv) {
+        exDiv.innerHTML = html;
+      }
+    }
+    setInterval(renderExampleBreakdown, 500);
+
+    // Add function to create and show score popup
+    function showScorePopup(score, isCorrect, wordElement) {
+      const popup = document.createElement('div');
+      popup.className = `score-popup ${isCorrect ? 'correct' : 'incorrect'}`;
+      popup.textContent = isCorrect ? `+${score}` : `-${score}`;
+      
+      // Position popup near the word
+      const rect = wordElement.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      popup.style.left = `${rect.left}px`;
+      popup.style.top = `${rect.top + scrollTop - 80}px`;
+      
+      document.body.appendChild(popup);
+      
+      // Remove popup after animation
+      setTimeout(() => {
+        if (popup.parentNode) {
+          popup.parentNode.removeChild(popup);
+        }
+      }, 2000);
+    }
+
+    // Function to get the worst performing letters for targeted practice
+    function getWorstPerformingLetters(count = 3) {
+      const letterAccuracies = allLetters
+        .filter(letter => unlockedLetters.has(letter))
+        .map(letter => {
+          const stats = letterStats[letter];
+          const total = stats.correct + stats.incorrect;
+          const accuracy = total > 0 ? (stats.correct / total * 100) : 100; // Default to 100% if no attempts
+          return { letter, accuracy, total };
+        })
+        .filter(item => item.total > 0) // Only include letters that have been attempted
+        .sort((a, b) => a.accuracy - b.accuracy); // Sort worst to best
+      
+      return letterAccuracies.slice(0, count).map(item => item.letter);
+    }
+
+    // Function to track letter statistics based on actual input
+    function trackLetterStats(targetWord, inputValue, wasCorrect) {
+      const target = targetWord.toLowerCase();
+      const input = inputValue.toLowerCase();
+      
+      // Track each character position
+      for (let i = 0; i < Math.max(target.length, input.length); i++) {
+        const targetChar = target[i];
+        const inputChar = input[i];
+        
+        if (targetChar && letterStats[targetChar]) {
+          if (wasCorrect) {
+            // For correct words, count all target letters as correct
+            letterStats[targetChar].correct++;
+          } else {
+            // For incorrect words, determine if this specific letter was wrong
+            if (inputChar !== targetChar) {
+              // This letter was typed incorrectly
+              letterStats[targetChar].incorrect++;
+            } else {
+              // This letter was typed correctly
+              letterStats[targetChar].correct++;
+            }
+          }
+        }
+      }
+    }
+
+    // Function to build and display letter statistics
+    function buildStats() {
+      const statsDiv = document.getElementById('letterStats');
+      if (!statsDiv) return;
+      let html = '';
+      // Show targeted letters at the top if targeted practice is unlocked
+      if (targetedPracticeUnlocked) {
+        const worstLetters = getWorstPerformingLetters(3);
+        html += `<div style="margin-bottom:1em;font-size:1.1em;"><strong>Targeted Letters:</strong> `;
+        if (worstLetters.length > 0) {
+          html += worstLetters.map(l => `<span style='display:inline-block;margin-right:0.5em;font-weight:bold;font-size:1.2em;color:#28a745;'>${l.toUpperCase()}</span>`).join('');
+        } else {
+          html += '<span style="color:#888;">None yet</span>';
+        }
+        html += '</div>';
+      }
+      // Calculate accuracy for each unlocked letter and sort by worst to best
+      const letterAccuracies = allLetters
+        .filter(letter => unlockedLetters.has(letter)) // Only show unlocked letters
+        .map(letter => {
+          const stats = letterStats[letter];
+          const total = stats.correct + stats.incorrect;
+          const accuracy = total > 0 ? (stats.correct / total * 100) : 0;
+          return {
+            letter,
+            correct: stats.correct,
+            incorrect: stats.incorrect,
+            total,
+            accuracy
+          };
+        }).sort((a, b) => a.accuracy - b.accuracy); // Sort worst to best
+      
+      html += '<div style="margin-bottom: 1rem;">';
+      html += '<h3>Letter Accuracy (Worst to Best)</h3>';
+      html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">';
+      
+      letterAccuracies.forEach(item => {
+        const color = item.accuracy >= 90 ? '#28a745' : 
+                     item.accuracy >= 80 ? '#ffc107' : 
+                     item.accuracy >= 70 ? '#fd7e14' : '#dc3545';
+        
+        html += `
+          <div style="border: 2px solid ${color}; border-radius: 8px; padding: 1rem; background: #f8f9fa;">
+            <div style="font-size: 1.5em; font-weight: bold; text-align: center; margin-bottom: 0.5rem;">
+              ${item.letter.toUpperCase()}
+            </div>
+            <div style="text-align: center; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.2em; font-weight: bold; color: ${color};">
+                ${item.accuracy.toFixed(1)}%
+              </span>
+            </div>
+            <div style="font-size: 0.9em; text-align: center;">
+              <div style="color: #28a745;">✓ ${item.correct} correct</div>
+              <div style="color: #dc3545;">✗ ${item.incorrect} incorrect</div>
+              <div style="color: #666;">Total: ${item.total}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div></div>';
+      
+      // Add summary statistics (only for unlocked letters)
+      const totalCorrect = allLetters
+        .filter(letter => unlockedLetters.has(letter))
+        .reduce((sum, letter) => sum + letterStats[letter].correct, 0);
+      const totalIncorrect = allLetters
+        .filter(letter => unlockedLetters.has(letter))
+        .reduce((sum, letter) => sum + letterStats[letter].incorrect, 0);
+      const overallAccuracy = (totalCorrect + totalIncorrect) > 0 ? 
+        (totalCorrect / (totalCorrect + totalIncorrect) * 100) : 0;
+      
+      html += `
+        <div style="border: 2px solid #007bff; border-radius: 8px; padding: 1rem; background: #e3f2fd;">
+          <h3>Overall Statistics</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; text-align: center;">
+            <div>
+              <div style="font-size: 1.5em; font-weight: bold; color: #28a745;">${totalCorrect}</div>
+              <div style="font-size: 0.9em; color: #666;">Total Correct</div>
+            </div>
+            <div>
+              <div style="font-size: 1.5em; font-weight: bold; color: #dc3545;">${totalIncorrect}</div>
+              <div style="font-size: 0.9em; color: #666;">Total Incorrect</div>
+            </div>
+            <div>
+              <div style="font-size: 1.5em; font-weight: bold; color: #007bff;">${overallAccuracy.toFixed(1)}%</div>
+              <div style="font-size: 0.9em; color: #666;">Overall Accuracy</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      statsDiv.innerHTML = html;
+    }
+
+    // Initialize level display on page load
+    updateLevelDisplay();
+
+    // Function to perform prestige
+    function performPrestige() {
+      if (!prestigeUnlocked) return;
+      
+      const levelInfo = calculateLevel(score);
+      const currentLevel = levelInfo.level;
+      
+      if (currentLevel >= nextPrestigeLevel) {
+        // Calculate stars earned (1 star per 1000 score, minimum 1)
+        const starsEarned = Math.max(1, Math.floor(score / 1000));
+        
+        // Show confirmation dialog
+        const confirmMessage = `Prestige at level ${currentLevel}?\n\nYou will earn ${starsEarned} ⭐\nAll progress will reset, but you'll keep your stars and prestige upgrades.`;
+        
+        if (confirm(confirmMessage)) {
+          // Add stars
+          prestigeStars += starsEarned;
+          prestigeLevel++;
+          // Calculate next prestige level (10, 20, 30, etc.)
+          nextPrestigeLevel = (prestigeLevel + 1) * 10;
+          
+          // Reset all progress
+          score = 0;
+          coins = 100; // Start with 100 coins
+          streak = 0;
+          correct = 0;
+          total = 0;
+          wordEntries = [];
+          
+          // Reset all upgrades to base level
+          unlockedLetters = new Set(['a','s','d','f','j','k','l']);
+          purchases.letters = new Set(['a','s','d','f','j','k','l']);
+          // Re-add permanent letter unlocks after prestige
+          prestigePermanentLetters.forEach(l => {
+            unlockedLetters.add(l);
+            purchases.letters.add(l);
+          });
+          keyboardUpgradeLevel = 0;
+          keyboardUpgradePrice = 3000;
+          maxWordLength = 3 + prestigeMaxWordLengthLevel;
+          maxWordLengthUpgradePrice = 2000 * Math.pow(1.5, prestigeMaxWordLengthLevel);
+          maxWordLengthUpgradeLevel = 0;
+          consonantValue = 5;
+          consonantUpgradeLevel = 0;
+          consonantUpgradePrice = 500;
+          vowelValue = 8;
+          vowelUpgradeLevel = 0;
+          vowelUpgradePrice = 1000;
+          lengthBonus = 1;
+          lengthBonusUpgradeLevel = 0;
+          lengthBonusUpgradePrice = 2000;
+          accuracyMultiplier = 0.02;
+          accuracyUpgradeLevel = 0;
+          accuracyUpgradePrice = 2000;
+          wpmMultiplier = 0.02;
+          wpmUpgradeLevel = 0;
+          wpmUpgradePrice = 2000;
+          streakMultiplier = 0.02;
+          streakUpgradeLevel = 0;
+          streakUpgradePrice = 2000;
+          capitalWordUpgradeLevel = 0;
+          capitalWordUpgradePrice = 4000;
+          semicolonWordUpgradeLevel = 0;
+          semicolonWordUpgradePrice = 1000;
+          mistakePenaltyReductionLevel = 0;
+          mistakePenaltyReductionPrice = 2000;
+          targetedPracticeUnlocked = false;
+          targetedWordBonus = 0.25;
+          targetedWordBonusUpgradePrice = 2000;
+          chooseWordListUnlocked = false;
+          addCustomWordListUnlocked = false;
+          chooseWordListUpgradePrice = 5000;
+          addCustomWordListUpgradePrice = 8000;
+          
+          // Reset letter prices
+          letterPrices = {};
+          vowels.forEach(v => letterPrices[v] = 1000);
+          consonants.forEach(c => letterPrices[c] = 500);
+          
+          // Reset word lists to default
+          wordLists = JSON.parse(JSON.stringify(defaultWordLists));
+          selectedListId = 1;
+          
+          // Reset UI state
+          prestigeUnlocked = false;
+          currentWordIsTargeted = false;
+          
+          // Update UI
+          updateStats();
+          buildKeyboard();
+          populateWordListSelect();
+          updateWordListManagerUI();
+          
+          // Show prestige success message
+          setTimeout(() => {
+            alert(`Prestige successful! You earned ${starsEarned} ⭐\n\nNext prestige available at level ${nextPrestigeLevel}`);
+            updatePrestigeStoreButtonVisibility();
+          }, 100);
+          
+          // Save progress
+          saveProgress();
+          
+          // Pick new word
+          pickNewWord();
+        }
+      }
+    }
+
+    function buildPrestigeStore() {
+      const prestigeStoreItemsDiv = document.getElementById('prestigeStoreItems');
+      prestigeStoreItemsDiv.innerHTML = '';
+      // Remove any existing toggle
+      const prestigeStoreSection = document.getElementById('prestigeStoreSection');
+      const oldToggle = document.getElementById('affordableOnlyPrestigeToggleContainer');
+      if (oldToggle && prestigeStoreSection) {
+        oldToggle.remove();
+      }
+      // Add affordable-only toggle UI at the very top, with checkbox right next to label
+      let toggleDiv = document.createElement('div');
+      toggleDiv.id = 'affordableOnlyPrestigeToggleContainer';
+      toggleDiv.style.display = 'flex';
+      toggleDiv.style.alignItems = 'center';
+      toggleDiv.style.justifyContent = 'flex-start';
+      toggleDiv.style.marginBottom = '1em';
+      toggleDiv.innerHTML = `<label style="font-size:1em;display:flex;align-items:center;gap:0.4em;"><input type="checkbox" id="affordableOnlyPrestigeToggle" style="margin:0;vertical-align:middle;" ${showAffordableOnlyPrestige ? 'checked' : ''}/>Show Only Affordable Upgrades (Sort by Price)</label>`;
+      // Insert toggle at the very top of the prestige store section
+      if (prestigeStoreSection && prestigeStoreSection.firstChild) {
+        prestigeStoreSection.insertBefore(toggleDiv, prestigeStoreSection.firstChild.nextSibling); // after h2
+      } else {
+        prestigeStoreItemsDiv.appendChild(toggleDiv);
+      }
+      setTimeout(() => {
+        const toggle = document.getElementById('affordableOnlyPrestigeToggle');
+        if (toggle) {
+          toggle.onchange = (e) => {
+            showAffordableOnlyPrestige = e.target.checked;
+            buildPrestigeStore();
+          };
+        }
+      }, 0);
+      // Helper to filter and sort items
+      function filterAndSort(items) {
+        if (showAffordableOnlyPrestige) {
+          items = items.filter(item => item.price !== undefined && prestigeStars >= item.price);
+          items.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+        }
+        return items;
+      }
+      // Build all prestige upgrades as item objects
+      let prestigeItems = [];
+      // Permanent Coin Multiplier
+      const nextMultiplier = prestigeCoinMultiplier + 0.1;
+      const cost = 100 * Math.pow(2, prestigeUpgradeLevel); // 100, 200, 400, 800, ...
+      prestigeItems.push({
+        label: 'Permanent Coin Multiplier',
+        desc: 'Increase all coin earnings permanently',
+        value: `Current: ${prestigeCoinMultiplier.toFixed(1)}x\nNext: ${nextMultiplier.toFixed(1)}x`,
+        price: cost,
+        id: 'prestige-coin-multiplier-upgrade',
+        type: 'prestigeupgrade',
+        canAfford: prestigeStars >= cost
+      });
+      // Streak Penalty Reduction
+      if (prestigeStreakPenalty > 1) {
+        prestigeItems.push({
+          label: 'Permanent Streak Protection',
+          desc: `On mistake, streak is reduced by <b>${prestigeStreakPenalty}</b> (min 1)`,
+          value: `Next: ${prestigeStreakPenalty - 1}`,
+          price: prestigeStreakPenaltyUpgradeCost,
+          id: 'prestige-streak-penalty-upgrade',
+          type: 'prestigeupgrade',
+          canAfford: prestigeStars >= prestigeStreakPenaltyUpgradeCost
+        });
+      }
+      // Mistake Forgiveness
+      if (!prestigeMistakeForgiveness) {
+        prestigeItems.push({
+          label: 'Permanent Mistake Forgiveness',
+          desc: 'No coin penalty for incorrect words, ever',
+          value: '',
+          price: prestigeMistakeForgivenessCost,
+          id: 'prestige-mistake-forgiveness-upgrade',
+          type: 'prestigeupgrade',
+          canAfford: prestigeStars >= prestigeMistakeForgivenessCost
+        });
+      }
+      // Max Word Length Boost
+      const maxAllowed = getCurrentListMaxWordLength();
+      const startingMaxWordLength = 3 + prestigeMaxWordLengthLevel;
+      const nextMaxWordLength = startingMaxWordLength + 1;
+      const maxLenCost = prestigeMaxWordLengthBaseCost * Math.pow(2, prestigeMaxWordLengthLevel);
+      if (nextMaxWordLength <= maxAllowed) {
+        prestigeItems.push({
+          label: 'Permanent Max Word Length Boost',
+          desc: `Start each run with max word length <b>${startingMaxWordLength}</b>` ,
+          value: `Next: ${nextMaxWordLength}`,
+          price: maxLenCost,
+          id: 'prestige-max-word-length-boost-upgrade',
+          type: 'prestigeupgrade',
+          canAfford: prestigeStars >= maxLenCost
+        });
+      }
+      // Filter and sort
+      prestigeItems = filterAndSort(prestigeItems);
+      // Render
+      prestigeItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'store-item store-item-large' + (prestigeStars < item.price ? ' disabled' : '');
+        div.innerHTML = `<div><strong>${item.label}</strong></div><div>${item.desc}</div>${item.value ? `<div>${item.value.replace(/\n/g, '<br>')}</div>` : ''}<div>${item.price} ⭐</div>`;
+        if (prestigeStars >= item.price) {
+          div.onclick = () => purchaseItem({id: item.id, price: item.price, type: item.type});
+        }
+        prestigeStoreItemsDiv.appendChild(div);
+      });
+    }
+
+    function buildDevStore() {
+      const devStoreItemsDiv = document.getElementById('devStoreItems');
+      devStoreItemsDiv.innerHTML = '';
+      const addLevel = (amount) => {
+        score += getLevelScoreDelta(amount);
+        updateStats();
+        saveProgress();
+      };
+      // Helper to get score needed for N levels
+      function getLevelScoreDelta(levels) {
+        let s = 0;
+        let current = score;
+        for (let i = 0; i < levels; i++) {
+          const info = calculateLevel(current);
+          s += info.nextThreshold - current;
+          current = info.nextThreshold;
+        }
+        return s;
+      }
+      [10, 50, 100].forEach(amount => {
+        const btn = document.createElement('button');
+        btn.className = 'button';
+        btn.style.margin = '0.5em';
+        btn.textContent = `Add ${amount} Levels`;
+        btn.onclick = () => addLevel(amount);
+        devStoreItemsDiv.appendChild(btn);
+      });
+    }
+
+    // Add event listeners for perm letter unlocks navigation after DOM is ready
+    setTimeout(() => {
+      const openPermLetterUnlocksLink = document.getElementById('openPermLetterUnlocksLink');
+      const permLetterUnlocksSection = document.getElementById('permLetterUnlocksSection');
+      const prestigeStoreSection = document.getElementById('prestigeStoreSection');
+      const backToPrestigeStoreBtn = document.getElementById('backToPrestigeStoreBtn');
+      if (openPermLetterUnlocksLink) {
+        openPermLetterUnlocksLink.onclick = (e) => {
+          e.preventDefault();
+          prestigeStoreSection.style.display = 'none';
+          permLetterUnlocksSection.style.display = 'block';
+          buildPermLetterUnlocks();
+        };
+      }
+      if (backToPrestigeStoreBtn) {
+        backToPrestigeStoreBtn.onclick = () => {
+          permLetterUnlocksSection.style.display = 'none';
+          prestigeStoreSection.style.display = 'block';
+        };
+      }
+    }, 0);
+
+    function buildPermLetterUnlocks() {
+      const permLetterUnlocksItems = document.getElementById('permLetterUnlocksItems');
+      permLetterUnlocksItems.innerHTML = '';
+      // Vowels
+      const permVowelGrid = document.createElement('div');
+      permVowelGrid.className = 'store-grid-letters';
+      permVowelGrid.innerHTML = `<div style='width:100%;font-weight:bold;color:#007bff;margin-bottom:0.2em;'>Vowels (cost: ${prestigeVowelPrice} ⭐ each)</div>`;
+      vowels.forEach(letter => {
+        if (!prestigePermanentLetters.includes(letter)) {
+          const div = document.createElement('div');
+          div.className = 'store-item' + (prestigeStars < prestigeVowelPrice ? ' disabled' : '');
+          div.innerHTML = `<div>${letter.toUpperCase()}</div><div>${prestigeVowelPrice} ⭐</div>`;
+          if (prestigeStars >= prestigeVowelPrice) {
+            div.onclick = () => purchaseItem({id: 'prestige-permanent-letter-' + letter, price: prestigeVowelPrice, type: 'prestigeupgrade', letter, isVowel: true});
+          }
+          permVowelGrid.appendChild(div);
+        }
+      });
+      permLetterUnlocksItems.appendChild(permVowelGrid);
+      // Consonants
+      const permConsonantGrid = document.createElement('div');
+      permConsonantGrid.className = 'store-grid-letters';
+      permConsonantGrid.innerHTML = `<div style='width:100%;font-weight:bold;color:#28a745;margin-bottom:0.2em;'>Consonants (cost: ${prestigeConsonantPrice} ⭐ each)</div>`;
+      consonants.forEach(letter => {
+        if (!prestigePermanentLetters.includes(letter)) {
+          const div = document.createElement('div');
+          div.className = 'store-item' + (prestigeStars < prestigeConsonantPrice ? ' disabled' : '');
+          div.innerHTML = `<div>${letter.toUpperCase()}</div><div>${prestigeConsonantPrice} ⭐</div>`;
+          if (prestigeStars >= prestigeConsonantPrice) {
+            div.onclick = () => purchaseItem({id: 'prestige-permanent-letter-' + letter, price: prestigeConsonantPrice, type: 'prestigeupgrade', letter, isVowel: false});
+          }
+          permConsonantGrid.appendChild(div);
+        }
+      });
+      permLetterUnlocksItems.appendChild(permConsonantGrid);
+    }
+  </script>
+</body>
+</html>
